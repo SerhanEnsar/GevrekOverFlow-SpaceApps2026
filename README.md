@@ -39,11 +39,11 @@ web/        static web app (in progress)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install asf_search rasterio h5py pyproj numpy
+pip install asf_search rasterio h5py pyproj numpy shapely pillow pytest
 cd pipeline
 python fetch.py --region mugla --list                                 # no login needed
-python fetch.py --region mugla --group 108D070 --download --limit 2   # needs NASA Earthdata Login
-python subset.py --region mugla --group 108D070 --delete-raw
+python fetch.py --region mugla --group 036D070 --download --limit 2   # needs NASA Earthdata Login
+python subset.py --region mugla --group 036D070 --delete-raw
 ```
 
 Downloading requires a free [NASA Earthdata Login](https://urs.earthdata.nasa.gov). Provide credentials via the

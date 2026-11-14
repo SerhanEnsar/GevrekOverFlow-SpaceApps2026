@@ -2,6 +2,7 @@
 
 Usage:
   python pipeline/fetch.py --region mugla --list                 # no login needed
+  python pipeline/fetch.py --region mugla --calendar web/data/mugla/calendar.json
   python pipeline/fetch.py --region mugla --group 108D070 --download [--limit 2]
 
 Download needs a NASA Earthdata Login. Credentials are read from the
@@ -9,26 +10,25 @@ EARTHDATA_USERNAME / EARTHDATA_PASSWORD environment variables or from
 ~/.netrc (machine urs.earthdata.nasa.gov). They are never stored by this script.
 """
 import argparse
+import json
 import netrc
 import os
-import re
 import sys
-from collections import defaultdict
+from pathlib import Path
 
 import asf_search as asf
+from shapely.geometry import box, shape
 
 from config import RAW, REGIONS, bbox_wkt
+from geometry import comparable_calendar, group_scenes
 
-NAME_RE = re.compile(r"GCOV_(\d{3})_(\d{3})_([AD])_(\d{3})")
-
-
-def geometry_key(file_name: str) -> str | None:
-    """'NISAR_L2_PR_GCOV_035_021_D_071_...' -> '021D071' (track, direction, frame)."""
-    m = NAME_RE.search(file_name)
-    return f"{m.group(2)}{m.group(3)}{m.group(4)}" if m else None
+# A scene must cover at least this share of the AOI to count as comparable.
+MIN_AOI_COVERAGE = 0.9
 
 
-def search(region: dict):
+def scene_records(region: dict) -> list[dict]:
+    """Search NISAR GCOV scenes intersecting the region; one record per product."""
+    aoi = box(*region["bbox"])
     results = asf.search(
         dataset="NISAR",
         processingLevel="GCOV",
@@ -37,27 +37,23 @@ def search(region: dict):
         end=region["search_end"],
         maxResults=2000,
     )
-    groups = defaultdict(dict)  # geometry -> {date: product}; keeps one product per date
+    records = []
     for p in results:
         name = p.properties.get("fileName") or p.properties.get("sceneName", "")
-        key = geometry_key(name)
-        if not key:
-            continue
-        date = p.properties["startTime"][:10]
-        # Prefer validated (V1) over provisional when both exist for the same date
-        prev = groups[key].get(date)
-        if prev is None or "_PR_" in (prev.properties.get("fileName") or ""):
-            groups[key][date] = p
-    return groups
+        footprint = shape(p.geometry)
+        records.append({
+            "file_name": name,
+            "date": p.properties["startTime"][:10],
+            "covers_aoi": footprint.intersection(aoi).area / aoi.area >= MIN_AOI_COVERAGE,
+            "product": p,
+        })
+    return records
 
 
-def print_groups(groups, event_date):
-    print(f"{'geometry':10} {'pre':>4} {'post':>4}  dates (| marks the event {event_date})")
-    for key in sorted(groups, key=lambda k: -len(groups[k])):
-        dates = sorted(groups[key])
-        pre = [d for d in dates if d < event_date]
-        post = [d for d in dates if d >= event_date]
-        print(f"{key:10} {len(pre):>4} {len(post):>4}  {' '.join(pre)} | {' '.join(post)}")
+def print_calendar(calendar: dict):
+    print(f"{'geometry':10} {'pre':>4} {'post':>4}  dates (| marks the event {calendar['event_date']})")
+    for g in calendar["groups"]:
+        print(f"{g['geometry']:10} {len(g['pre']):>4} {len(g['post']):>4}  {' '.join(g['pre'])} | {' '.join(g['post'])}")
 
 
 def earthdata_session():
@@ -82,6 +78,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--region", default="mugla", choices=REGIONS)
     ap.add_argument("--list", action="store_true", help="list geometry groups and dates")
+    ap.add_argument("--calendar", type=Path, help="write the comparable-date calendar JSON here")
     ap.add_argument("--group", help="geometry key, e.g. 108D070")
     ap.add_argument("--download", action="store_true")
     ap.add_argument("--dates", nargs="*", help="only these dates (YYYY-MM-DD)")
@@ -89,16 +86,21 @@ def main():
     args = ap.parse_args()
 
     region = REGIONS[args.region]
-    groups = search(region)
-    if args.list or not args.download:
-        print_groups(groups, region["event_date"])
-        if not args.download:
-            return
+    groups = group_scenes(scene_records(region))
+    calendar = comparable_calendar(groups, region["event_date"])
+    if args.calendar:
+        args.calendar.parent.mkdir(parents=True, exist_ok=True)
+        args.calendar.write_text(json.dumps(calendar, indent=1))
+        print(f"calendar → {args.calendar}")
+    if args.list or not (args.download or args.calendar):
+        print_calendar(calendar)
+    if not args.download:
+        return
 
     key = args.group or region["default_group"]
     if key not in groups:
         sys.exit(f"Geometry group {key} not found. Run with --list.")
-    items = sorted(groups[key].items())
+    items = sorted((d, r["product"]) for d, r in groups[key].items())
     if args.dates:
         items = [(d, p) for d, p in items if d in set(args.dates)]
     if args.limit:

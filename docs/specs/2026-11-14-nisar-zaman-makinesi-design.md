@@ -87,7 +87,7 @@ NASA CMR / ASF ──► pipeline/ (Python, önceden çalışır) ──► web/
 | P11 | Güven maskesi | Dağlık yamaçlarda layover/gölge → düşük güven işareti | Son |
 | P12 | Doğrulama | Yanık izi ↔ OPERA DIST/optik örtüşmesi; tarla döngüsü ↔ NDVI | Son |
 
-**Vitrin verisi:** Muğla için `108D070` geometrisi (yangından önce 4, sonra 6 sahne). Ascending karşılaştırması gerekirse `129A020` kullanılır.
+**Vitrin verisi:** Muğla için `036D070` geometrisi (descending; yangından önce 3, sonra 7 sahne; bölgeyi %100 kapsıyor). Aynı tarihlerde ascending `028A020` de %100 kapsıyor ve P11 için kullanılır. `108D070` (%81) ve `129A020` (%72) bölgeyi yeterince kapsamadığı için kullanılmaz.
 
 ### 5.2 Tarayıcı bileşenleri
 
@@ -118,7 +118,7 @@ NASA CMR / ASF ──► pipeline/ (Python, önceden çalışır) ──► web/
 
 ## 7. Test ve doğrulama
 
-- **Go/no-go (ilk iş):** Yangın öncesi (27.07) ve sonrası (20.08) iki sahnede yanık izi HV'de belirgin mi?
+- **Go/no-go (ilk iş):** Yangın öncesi (22.07) ve sonrası (15.08) iki sahnede yanık izi HV'de belirgin mi?
 - **Bilimsel:** Yanık izi ile OPERA DIST arasındaki örtüşme oranı; tarla döngüsü ile NDVI arasındaki uyum. Sonuçlar `docs/` altında raporlanır.
 - **Arayüz:** Tarayıcıda şu akışlar denenir: küre → uçuş → zaman makinesi → nokta seçimi → açıklama → hikâye modu.
 - **Yayın:** GitHub Pages linki gizli pencerede, giriş yapmadan açılır.

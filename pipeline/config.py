@@ -20,9 +20,11 @@ REGIONS = {
         "eonet_id": "EONET_1029896",
         "search_start": "2026-06-01",
         "search_end": "2026-10-31",
-        # Same track/direction/frame groups with pre- and post-fire scenes (from CMR scan)
-        "geometry_groups": ["108D070", "129A020", "028A020", "036D070"],
-        "default_group": "108D070",
+        # Geometries covering >= 90 % of the AOI (see fetch.MIN_AOI_COVERAGE):
+        # 036D070 (descending) and 028A020 (ascending) cover 100 %; 108D070 and
+        # 129A020 cover only ~81 % / ~72 % and are therefore not comparable here.
+        "geometry_groups": ["036D070", "028A020"],
+        "default_group": "036D070",
     },
 }
 
