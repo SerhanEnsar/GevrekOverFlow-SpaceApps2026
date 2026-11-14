@@ -267,7 +267,7 @@ python pipeline/fetch.py --region spain --group 095D068 --download --limit 2  # 
 python pipeline/subset.py --region spain --group 095D068 --delete-raw
 python pipeline/run_region.py --region spain --group 095D068                 # → web/data/spain/
 
-LC_ALL=C.UTF-8 pytest tests                                                  # 38 tests
+LC_ALL=C.UTF-8 pytest tests                                                  # 39 tests
 ```
 
 Downloading needs a free [NASA Earthdata Login](https://urs.earthdata.nasa.gov), read from the

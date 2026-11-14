@@ -12,6 +12,8 @@ import datetime as dt
 import json
 from pathlib import Path
 
+import re
+
 import requests
 
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.json"
@@ -31,6 +33,16 @@ def _reduce(ring: list[list[float]], max_points: int) -> list[list[float]]:
     return body + [body[0]]
 
 
+_POL_RE = re.compile(r"GCOV_\d{3}_\d{3}_[AD]_\d{3}_\d{4}_([A-Z]{2})[A-Z]{2}_")
+_HV_MODES = {"DH", "DV", "QP", "QD"}
+
+
+def pol_mode(name: str) -> str | None:
+    """Polarization mode from a GCOV granule name ("DH" = HH+HV, "SH" = HH only, ...), same as web/js/cmr.js."""
+    m = _POL_RE.search(name or "")
+    return m.group(1) if m else None
+
+
 def footprints_from_cmr(entries: list[dict], max_points: int = 12) -> list[dict]:
     """CMR granule entries -> GeoJSON Polygon features with a 'date' property."""
     features = []
@@ -45,9 +57,14 @@ def footprints_from_cmr(entries: list[dict], max_points: int = 12) -> list[dict]
         features.append({
             "type": "Feature",
             "geometry": {"type": "Polygon", "coordinates": [_reduce(ring, max_points)]},
-            "properties": {"date": e["time_start"][:10]},
+            "properties": {"date": e["time_start"][:10], **_pol_props(e)},
         })
     return features
+
+
+def _pol_props(e: dict) -> dict:
+    pol = pol_mode(e.get("title") or e.get("producer_granule_id") or "")
+    return {"pol": pol, "hv": pol is None or pol in _HV_MODES}
 
 
 def clean_features(features: list[dict], start: str) -> list[dict]:

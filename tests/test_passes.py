@@ -50,3 +50,13 @@ def test_clean_drops_old_duplicates_and_rounds():
                          start="2026-11-02")
     assert [f["properties"]["date"] for f in out] == ["2026-11-11", "2026-11-12"]      # old one dropped, duplicate keeps latest
     assert out[0]["geometry"]["coordinates"][0][0] == [30.988, 0.123]
+
+
+def test_pol_mode_and_hv_flag():
+    from passes import footprints_from_cmr, pol_mode
+    assert pol_mode("NISAR_L2_PR_GCOV_033_079_D_089_2005_SHSH_A_20261017T164259") == "SH"
+    assert pol_mode("NISAR_L2_PR_GCOV_034_079_D_089_2005_DHDH_A_20261029T164300") == "DH"
+    e = {"time_start": "2026-10-17T16:42:59Z", "title": "NISAR_L2_PR_GCOV_033_079_D_089_2005_SHSH_A_x",
+         "polygons": [["0 0 0 1 1 1 1 0 0 0"]]}
+    f = footprints_from_cmr([e])[0]
+    assert f["properties"] == {"date": "2026-10-17", "pol": "SH", "hv": False}
