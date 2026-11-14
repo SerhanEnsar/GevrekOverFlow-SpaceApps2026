@@ -184,6 +184,7 @@ map.on("click", (e) => {
 });
 
 // ---- area selection: rectangle, circle, polygon ------------------------------------
+let drawHintTimer = 0;
 const DRAW_HINT = {
   rect: "Drag to draw a rectangle · Esc to cancel",
   circle: "Press at the centre and drag the radius · Esc to cancel",
@@ -198,9 +199,17 @@ const draw = initDraw(map, {
     $("draw-hint").hidden = !DRAW_HINT[m];
   },
   onDone: (ring, shape) => { draw.setMode("point"); openArea(ring, shape); },
+  onBlocked: () => {
+    $("draw-hint").textContent = "The map is still moving — wait a moment, then draw.";
+    clearTimeout(drawHintTimer);
+    drawHintTimer = setTimeout(() => { $("draw-hint").textContent = DRAW_HINT[draw.mode] ?? ""; }, 1800);
+  },
 });
 document.querySelectorAll("#drawbar [data-mode]").forEach((b) =>
-  b.addEventListener("click", () => draw.setMode(draw.mode === b.dataset.mode && b.dataset.mode !== "point" ? "point" : b.dataset.mode)));
+  b.addEventListener("click", () => {
+    map.stopSpin?.();                                    // the idle globe spin would block drawing
+    draw.setMode(draw.mode === b.dataset.mode && b.dataset.mode !== "point" ? "point" : b.dataset.mode);
+  }));
 
 function openArea(ring, shape) {
   if (!rules) return toast("Interpretation rules are missing — cannot read this area.");

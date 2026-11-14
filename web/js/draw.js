@@ -7,7 +7,7 @@ const EMPTY = { type: "FeatureCollection", features: [] };
 const poly = (ring) => ({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } });
 
 /** onDone(ring, shape) is called with a closed lon/lat ring. Returns {setMode(mode), mode, clear(), cancel()}. */
-export function initDraw(map, { onDone, onMode } = {}) {
+export function initDraw(map, { onDone, onMode, onBlocked } = {}) {
   let mode = "point", start = null, verts = [], dragging = false;
 
   const ensure = () => {
@@ -32,10 +32,14 @@ export function initDraw(map, { onDone, onMode } = {}) {
   const lngLat = (e) => [e.lngLat.lng, e.lngLat.lat];
   const vertexFeatures = (pts) => pts.map((p) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: p } }));
 
+  // While the map flies or zooms, a click would land on a moving point: ignore it and say why.
+  const moving = () => { if (!map.isMoving()) return false; onBlocked?.(); return true; };
+
   // Rectangle and circle: press, drag, release (the map does not pan meanwhile).
   map.on("mousedown", (e) => {
     if (mode !== "rect" && mode !== "circle") return;
     e.preventDefault();
+    if (moving()) return;
     start = lngLat(e); dragging = true;
   });
   map.on("mousemove", (e) => {
@@ -57,7 +61,7 @@ export function initDraw(map, { onDone, onMode } = {}) {
 
   // Polygon: click corners; closing on the first corner or a double-click finishes.
   map.on("click", (e) => {
-    if (mode !== "polygon") return;
+    if (mode !== "polygon" || moving()) return;
     const p = lngLat(e);
     if (verts.length >= 3) {
       const first = map.project(verts[0]);
