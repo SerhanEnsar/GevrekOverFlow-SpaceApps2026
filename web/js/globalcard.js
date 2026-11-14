@@ -10,6 +10,9 @@ const db = (v) => (v == null ? "–" : v.toFixed(1).replace("-", "−"));
 /** Default before/after: the first pass after `event` (or the latest pass) and the pass before it,
  *  preferring the same orbit so the pair is fully comparable. */
 export function defaultPassPair(passes, event = null) {
+  // Passes without HV (single-pol HH) cannot show vegetation: never pick them by default.
+  const usable = passes.filter((p) => p.hv !== false);
+  if (usable.length) passes = usable;
   if (!passes.length) return [null, null];
   const asc = [...passes].sort((a, b) => (a.date < b.date ? -1 : 1));
   let j = event ? asc.findIndex((p) => p.date > event) : asc.length - 1;
@@ -44,7 +47,7 @@ export async function openGlobalCard(el, lng, lat, ctx, { event = null, title = 
   if (!passes) { body.innerHTML = `<p class="muted">NASA's search service could not be reached. Try again in a moment.</p>`; return; }
   if (!passes.length) { body.innerHTML = `<p class="muted">NISAR has not imaged this place yet (or the data are not public yet).</p>`; return; }
 
-  const opt = (p, sel) => `<option value="${p.date}|${p.geometry}" ${sel ? "selected" : ""}>${p.date} · ${p.geometry}</option>`;
+  const opt = (p, sel) => `<option value="${p.date}|${p.geometry}" ${sel ? "selected" : ""}>${p.date} · ${p.geometry}${p.hv === false ? " · HH only" : ""}</option>`;
   let [before, after] = defaultPassPair(passes, event);
   const fires = ctx.fires ? nearby(ctx.fires, lng, lat, 50).slice(0, 5) : [];
 
@@ -90,7 +93,13 @@ export async function openGlobalCard(el, lng, lat, ctx, { event = null, title = 
         cv.getContext("2d").drawImage(c, 0, 0); box.append(cv);
       } else box.innerHTML = `<span class="muted small">no image</span>`;
     }
-    const dA = pa && gibsToDb(ctx.rules, pa.r, pa.g), dB = pb && gibsToDb(ctx.rules, pb.r, pb.g);
+    if (a.hv === false) {
+      res.innerHTML = `<p class="gc-warn">On ${a.date} NISAR recorded <strong>HH only</strong> (single polarization). Without HV there is
+        no vegetation signal, and its colours are not comparable with the other images. Pick another date.</p>`;
+      body.querySelector(".gc-expert").innerHTML = "";
+      return;
+    }
+    const dA = pa && gibsToDb(ctx.rules, pa.r, pa.g), dB = b.hv !== false && pb ? gibsToDb(ctx.rules, pb.r, pb.g) : null;
     if (!dA) {
       res.innerHTML = `<p class="muted">NASA's map service has no NISAR image for ${a.date} here yet. Pick another date.</p>`;
       body.querySelector(".gc-expert").innerHTML = "";
@@ -103,7 +112,8 @@ export async function openGlobalCard(el, lng, lat, ctx, { event = null, title = 
         <span class="ex-conf ${ex.confidence}">${ex.confidence === "high" ? "clear" : "uncertain"}</span></div>
       <p>${ex.plain}</p>
       ${ex.change ? `<p class="gc-change ${ex.change.id}">${ex.change.label}${ex.change.experimental ? ' <span class="tag">experimental</span>' : ""}</p>` : ""}
-      ${dB ? "" : `<p class="muted small">No image on ${b.date} here — change cannot be estimated.</p>`}
+      ${dB ? "" : b.hv === false ? `<p class="muted small">${b.date} recorded HH only — change cannot be estimated. Pick another “before” date.</p>`
+        : `<p class="muted small">No image on ${b.date} here — change cannot be estimated.</p>`}
       ${sameOrbit ? "" : `<p class="muted small">Different orbits (${b.geometry} → ${a.geometry}): only HV is comparable.</p>`}`;
     body.querySelector(".gc-expert").innerHTML = `
       <div>${a.date}: HH ≈ ${db(dA.hh)} dB · HV ≈ ${db(dA.hv)} dB (GIBS RGB ${pa.r.toFixed(0)}, ${pa.g.toFixed(0)}, ${pa.b.toFixed(0)})</div>

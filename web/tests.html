@@ -18,7 +18,7 @@
     import { classify, interpret, gibsToDb, validateRules } from "./js/rules.js";
     import { validateStory } from "./js/story.js";
     import { SHOWCASES } from "./js/config.js";
-    import { geometryKey, parsePasses, inRing, imagedAfterLocal } from "./js/cmr.js";
+    import { geometryKey, parsePasses, inRing, imagedAfterLocal, polMode, hasHV } from "./js/cmr.js";
     import { tileXY } from "./js/gibs.js";
     import { parseLive, mergeFires, inRange, nearby, distanceKm } from "./js/fires.js";
     import { destination, bearing, groundRange, beamFeatures, swathPolygon } from "./js/orbit.js";
@@ -148,7 +148,7 @@
     test("passes: unique per date+orbit, newest first", () => {
       const e = (t, d) => ({ title: `NISAR_L2_PR_GCOV_026_${t}_2005`, time_start: d + "T19:09:24Z" });
       eq(parsePasses([[e("095_D_068", "2026-07-14"), e("159_A_022", "2026-07-19")], [e("095_D_068", "2026-07-14")]]),
-        [{ date: "2026-07-19", geometry: "159A022" }, { date: "2026-07-14", geometry: "095D068" }]);
+        [{ date: "2026-07-19", geometry: "159A022", pol: null, hv: true }, { date: "2026-07-14", geometry: "095D068", pol: null, hv: true }]);
     });
 
     test("recent fire: imaged afterwards only if a later pass covers it", () => {
@@ -220,6 +220,14 @@
     test("satellite's eye looks at the swath centre, ~550 km left of the track", () => {
       const c = swathCentre({ lon: 0, lat: 0, heading: 0, altKm: 747 });
       ok(c[0] < 0); near(distanceKm(0, 0, c[0], c[1]), 552, 15);
+    });
+
+    test("polarization mode from granule names: single-pol HH has no vegetation channel", () => {
+      eq(polMode("NISAR_L2_PR_GCOV_033_079_D_089_2005_SHSH_A_20261017T164259_20261017T164334_P05023_N_F_J_001"), "SH");
+      eq(polMode("NISAR_L2_PR_GCOV_034_079_D_089_2005_DHDH_A_20261029T164300_20261029T164334_P05036_N_F_J_001"), "DH");
+      eq([hasHV("SH"), hasHV("DH"), hasHV(null)], [false, true, true]);
+      const p = parsePasses([[{ time_start: "2026-10-17T16:42:59Z", title: "NISAR_L2_PR_GCOV_033_079_D_089_2005_SHSH_A_x" }]]);
+      eq(p[0].hv, false);
     });
 
     // story.js

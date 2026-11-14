@@ -8,13 +8,24 @@ export function geometryKey(name) {
   return m ? m[1] + m[2] + m[3] : null;
 }
 
-/** Arrays of CMR entries -> unique [{date, geometry}] newest first. */
+/** Polarization mode from a GCOV granule name: "DH" (HH+HV), "SH" (HH only), "QP", … or null. */
+export function polMode(name) {
+  const m = /GCOV_\d{3}_\d{3}_[AD]_\d{3}_\d{4}_([A-Z]{2})[A-Z]{2}_/.exec(name ?? "");
+  return m ? m[1] : null;
+}
+/** Does this pass carry a cross-polarized (vegetation) channel? Unknown modes are not blocked. */
+export const hasHV = (mode) => mode == null || ["DH", "DV", "QP", "QD"].includes(mode);
+
+/** Arrays of CMR entries -> unique [{date, geometry, pol, hv}] newest first. */
 export function parsePasses(entryLists) {
   const seen = new Map();
   for (const list of entryLists)
     for (const e of list) {
-      const date = e.time_start.slice(0, 10), geometry = geometryKey(e.title ?? e.producer_granule_id);
-      seen.set(`${date}|${geometry}`, { date, geometry });
+      const name = e.title ?? e.producer_granule_id;
+      const date = e.time_start.slice(0, 10), geometry = geometryKey(name), pol = polMode(name);
+      const key = `${date}|${geometry}`;
+      if (seen.get(key)?.hv && !hasHV(pol)) continue;    // keep the dual-pol granule when both exist
+      seen.set(key, { date, geometry, pol, hv: hasHV(pol) });
     }
   return [...seen.values()].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }

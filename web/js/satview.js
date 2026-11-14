@@ -17,7 +17,7 @@ export function cameraFor(map, now, view) {
     return map.calculateCameraOptionsFromTo({ lng: now.lon, lat: now.lat }, now.altKm * 1000, { lng, lat }, 0);
   }
   const c = destination([now.lon, now.lat], now.heading - 90, 270);
-  return { center: c, zoom: 4, pitch: 58, bearing: now.heading };
+  return { center: c, zoom: 3.8, pitch: 50, bearing: now.heading };   // lower tilt: far fewer tiles to the horizon
 }
 
 /** Ids of the NISAR day layers to hide: all but the `keep` newest. */
@@ -64,10 +64,11 @@ export function createSatView(map, ui) {
       st.frame++;
       place(now);
       render();
-      ui.scan.classList.remove("go"); void ui.scan.offsetWidth; ui.scan.classList.add("go");
+      if (st.view === "eye") { ui.scan.classList.remove("go"); void ui.scan.offsetWidth; ui.scan.classList.add("go"); }
     },
     toggleView(now) {
       st.view = st.view === "eye" ? "outside" : "eye";
+      ui.scan.classList.remove("go");
       st.paused = false; render();
       if (now) fadeCut(() => place(now));
     },
@@ -77,6 +78,7 @@ export function createSatView(map, ui) {
     exit(restore = true) {
       if (!st.active) return;
       st.active = false;
+      ui.scan.classList.remove("go");
       st.hidden.forEach((id) => vis(id, true));
       vis("sat-beam", true);
       if (map.getLayer("sat-swath")) map.setPaintProperty("sat-swath", "fill-opacity", 0.22);
