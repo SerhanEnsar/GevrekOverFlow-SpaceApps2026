@@ -1,0 +1,9 @@
+# Python env
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Large intermediate data (raw NISAR .h5, cropped cubes) — NOT web/data, which the site needs
+/data/
+*.h5
+*.zip
