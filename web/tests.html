@@ -14,6 +14,7 @@
   <script type="module">
     import { decodeDb, pixelOf, seriesAt } from "./js/data.js";
     import { labelFor, defaultDateIndex } from "./js/timeline.js";
+    import { showSeries, NO_DATA_TEXT } from "./js/chart.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -56,6 +57,21 @@
       eq(defaultDateIndex(["2026-06-28", "2026-07-10", "2026-07-22", "2026-08-15"], "2026-07-28"), 2));
     test("default date falls back to 0 when nothing precedes the event", () =>
       eq(defaultDateIndex(["2026-08-15"], "2026-07-28"), 0));
+
+    // chart.js
+    test("clicking outside the data shows 'No radar data here'", () => {
+      const el = document.createElement("div");
+      showSeries(el, seriesAt(bundle, 30, 36.1), manifest);
+      eq(el.textContent.trim(), NO_DATA_TEXT);
+      eq(NO_DATA_TEXT, "No radar data here");
+    });
+    test("a valid series renders a chart canvas", () => {
+      const el = document.createElement("div");
+      document.body.appendChild(el);
+      showSeries(el, seriesAt(bundle, 29.05, 36.15), { ...manifest, event_date: "2026-08-01" });
+      eq(!!el.querySelector("canvas"), true);
+      el.remove();
+    });
 
     const failed = results.filter((r) => !r[1]).length;
     document.getElementById("summary").textContent = `${results.length - failed}/${results.length} passed`;

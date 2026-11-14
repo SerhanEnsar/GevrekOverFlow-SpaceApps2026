@@ -29,6 +29,11 @@
         <h2 id="showcase-title"></h2>
         <p id="showcase-sub" class="muted"></p>
         <div id="timeline"></div>
+        <div id="series-wrap" hidden>
+          <h3>How this place changed</h3>
+          <div id="series"></div>
+        </div>
+        <p id="hint" class="muted" hidden>Click anywhere on the radar image to see how that place changed.</p>
         <p id="status" class="muted"></p>
       </section>
     </aside>
@@ -36,8 +41,9 @@
 
   <script type="module">
     import { SHOWCASES } from "./js/config.js";
-    import { initGlobe, flyToShowcase, setFrame } from "./js/map.js";
-    import { loadBundle } from "./js/data.js";
+    import { initGlobe, flyToShowcase, setFrame, setPick } from "./js/map.js";
+    import { loadBundle, seriesAt } from "./js/data.js";
+    import { showSeries } from "./js/chart.js";
     import { initTimeline } from "./js/timeline.js";
 
     const $ = (id) => document.getElementById(id);
@@ -49,11 +55,15 @@
       $("showcase-title").textContent = s.label;
       $("showcase-sub").textContent = s.subtitle;
       $("timeline").innerHTML = "";
+      $("series-wrap").hidden = true;
+      $("hint").hidden = true;
+      window.__bundle = null;
       $("status").textContent = "Loading radar data…";
       try {
         const bundle = await loadBundle(s.id);
         window.__bundle = bundle;
         $("status").textContent = "";
+        $("hint").hidden = false;
         initTimeline($("timeline"), bundle.manifest, `data/${s.id}`,
           (date, url) => setFrame(map, url, bundle.manifest.bbox));
       } catch (e) {
@@ -62,6 +72,16 @@
     }
 
     const map = initGlobe("map", SHOWCASES, { onShowcase: openShowcase });
+
+    // Time series of the clicked place (mean of ~60 m around it).
+    map.on("click", (e) => {
+      const bundle = window.__bundle;
+      if (!bundle || map.queryRenderedFeatures(e.point, { layers: ["showcase-dot"] }).length) return;
+      setPick(map, e.lngLat);
+      $("hint").hidden = true;
+      $("series-wrap").hidden = false;
+      showSeries($("series"), seriesAt(bundle, e.lngLat.lng, e.lngLat.lat, 60), bundle.manifest);
+    });
     window.__map = map; // for manual inspection during development
   </script>
 </body>

@@ -104,3 +104,13 @@ export function setFrame(map, url, bbox) {
   map.addSource("frame", { type: "image", url, coordinates });
   map.addLayer({ id: "frame", type: "raster", source: "frame", paint: { "raster-fade-duration": 0 } }, "showcase-halo");
 }
+
+// Marker for the place whose time series is shown.
+export function setPick(map, lngLat) {
+  const data = { type: "Feature", geometry: { type: "Point", coordinates: [lngLat.lng, lngLat.lat] } };
+  const src = map.getSource("pick");
+  if (src) { src.setData(data); return; }
+  map.addSource("pick", { type: "geojson", data });
+  map.addLayer({ id: "pick", type: "circle", source: "pick",
+    paint: { "circle-radius": 7, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#fff", "circle-stroke-width": 2.5 } });
+}
