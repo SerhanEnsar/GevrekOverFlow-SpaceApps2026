@@ -22,6 +22,7 @@
     import { tileXY } from "./js/gibs.js";
     import { parseLive, mergeFires, inRange, nearby, distanceKm } from "./js/fires.js";
     import { destination, bearing, groundRange, beamFeatures, swathPolygon } from "./js/orbit.js";
+    import { lodHidden, swathCentre } from "./js/satview.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -211,6 +212,15 @@
     });
     test("swath strip skips steps too close to a pole", () =>
       eq(swathPolygon([[0, 86, 0], [0, 87, 0]], 747).features.length, 0));
+
+    test("satellite view keeps only the newest NISAR days (level of detail)", () => {
+      eq(lodHidden(["bluemarble", "nisar-2026-11-03", "nisar-2026-11-12", "nisar-2026-11-10", "fires"]), ["nisar-2026-11-03"]);
+      eq(lodHidden(["nisar-2026-11-03"]), []);
+    });
+    test("satellite's eye looks at the swath centre, ~550 km left of the track", () => {
+      const c = swathCentre({ lon: 0, lat: 0, heading: 0, altKm: 747 });
+      ok(c[0] < 0); near(distanceKm(0, 0, c[0], c[1]), 552, 15);
+    });
 
     // story.js
     test("story validation catches unknown showcase and missing text", () => {

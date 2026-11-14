@@ -201,3 +201,13 @@ kbd { font: 600 10px/1 ui-monospace, monospace; padding: 2px 4px; margin-left: 4
 .swatch.sat { background: #5ef2ff; opacity: .8; }
 .sat-chip { position: absolute; right: 12px; bottom: 52px; z-index: 4; max-width: 520px; font-size: 12px; line-height: 1.4;
   background: rgba(8, 14, 28, .82); border: 1px solid #5ef2ff44; border-radius: 6px; padding: 6px 10px; color: #dff9ff; pointer-events: none; }
+.fade { position: absolute; inset: 0; z-index: 6; background: #02040a; opacity: 0; pointer-events: none; transition: opacity .28s ease; }
+.fade.on { opacity: 1; }
+.scan { position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: 0;
+  background: linear-gradient(to bottom, transparent 0, rgba(94,242,255,.16) 48%, rgba(94,242,255,.35) 50%, transparent 52%) no-repeat;
+  background-size: 100% 200%; }
+.scan.go { animation: scan .7s ease-out; }
+@keyframes scan { from { opacity: 1; background-position: 0 100%; } to { opacity: 0; background-position: 0 0; } }
+.satbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 7; display: flex; gap: 8px; align-items: center;
+  background: rgba(8, 14, 28, .88); border: 1px solid #5ef2ff55; border-radius: 8px; padding: 6px 8px 6px 12px; font-size: 13px; color: #dff9ff; }
+@media (prefers-reduced-motion: reduce) { .scan.go { animation: none; } .fade { transition: none; } }

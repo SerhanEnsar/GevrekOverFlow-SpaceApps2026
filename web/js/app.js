@@ -1,7 +1,8 @@
 // App wiring: globe, showcase panel, bottom time strip, method drawer, story.
 import { SHOWCASES } from "./config.js";
 import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase, setSatellite } from "./map.js";
-import { loadTle, makePropagator, satelliteScene, destination } from "./orbit.js";
+import { loadTle, makePropagator, satelliteScene } from "./orbit.js";
+import { createSatView } from "./satview.js";
 import { loadManifest, loadTimeseries, seriesAt, valuesAt, seriesToCsv } from "./data.js";
 import { loadRules, interpret } from "./rules.js";
 import { initTimeline } from "./timeline.js";
@@ -71,6 +72,7 @@ $("compare-btn").addEventListener("click", toggleCompare);
 
 // ---- showcases ----------------------------------------------------------------
 async function openShowcase(s) {
+  satView.exit(false);
   if (compare) toggleCompare();
   if (s.id === currentId && bundle()) return;          // already open
   currentId = s.id;
@@ -260,6 +262,7 @@ document.querySelectorAll("#fires .seg-btn").forEach((b) => b.addEventListener("
 
 function focusFire(row) {
   if (!row) return;
+  satView.exit(false);
   if (bundle() && !inShowcase(row[3], row[4])) goGlobe(false);
   map.stopSpin?.();
   setFireFocus(map, row);
@@ -301,7 +304,13 @@ loadFires().then((rows) => {
 });
 
 // ---- NISAR now (approximate position from public TLE — visualization only) -------
-let satNow = null;
+// One position per second. The ground layers are refreshed every 2 s on the globe, every 1 s in
+// Satellite view (where each tick is one camera "frame").
+let satNow = null, satTicks = 0;
+const satView = createSatView(map, {
+  bar: $("satbar"), label: $("satbar-label"), toggle: $("satbar-toggle"), resume: $("satbar-resume"),
+  close: $("satbar-close"), fade: $("fade"), scan: $("scan"),
+});
 async function startSatellite() {
   const tle = await loadTle();
   if (!tle) { $("sat-btn").hidden = true; return; }
@@ -309,28 +318,32 @@ async function startSatellite() {
   if (!at) { $("sat-btn").hidden = true; return; }
   const tick = () => {
     if (document.hidden) return;
+    satTicks++;
+    if (!satView.active && satTicks % 2) return;
     const sc = satelliteScene(at, new Date());
     if (!sc) return;
     satNow = sc.now;
     setSatellite(map, sc);
+    satView.tick(satNow);
     const n = sc.now, ns = n.lat >= 0 ? "N" : "S", ew = n.lon >= 0 ? "E" : "W";
     $("sat-chip").innerHTML = `🛰 <strong>NISAR now</strong> · ${Math.abs(n.lat).toFixed(1)}°${ns}, ${Math.abs(n.lon).toFixed(1)}°${ew}
       · ${Math.round(n.altKm)} km <span class="muted">· approximate, from public TLE (${(tle.date ?? "").slice(0, 10)}) · visualization only</span>`;
     $("sat-chip").hidden = false;
   };
   tick();
-  setInterval(tick, 2000);
+  setInterval(tick, 1000);
 }
 $("sat-btn").addEventListener("click", () => {
   if (!satNow) return toast("NISAR's position is not available right now.");
+  if (satView.active) return satView.exit();
   if (bundle()) goGlobe(false);
+  $("gcard").hidden = true; $("explain").hidden = true;
   map.stopSpin?.();
-  // Look along the flight direction from behind, so the beam leans out to the left.
-  // Centre between the nadir and the imaged strip and look along the flight direction:
-  // the beam then climbs from the strip (left) to the satellite (right).
-  const c = destination([satNow.lon, satNow.lat], satNow.heading - 90, 270);
-  map.flyTo({ center: c, zoom: 4, pitch: 58, bearing: satNow.heading, duration: 3500, essential: true });
+  satView.enter(satNow);
 });
+$("satbar-toggle").addEventListener("click", () => satView.toggleView(satNow));
+$("satbar-resume").addEventListener("click", () => satView.resume(satNow));
+$("satbar-close").addEventListener("click", () => satView.exit());
 if (mapReady) startSatellite(); else map.once("load", startSatellite);
 
 // ---- method drawer ------------------------------------------------------------
@@ -348,6 +361,7 @@ $("method-close").addEventListener("click", closeMethod);
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || e.target.closest?.("input, select, textarea")) return;
   if (!$("method").hidden) return closeMethod();
+  if (satView.active) return satView.exit();
   if (compare) return toggleCompare();
   if (!$("gcard").hidden) { $("gcard").querySelector(".gc-close")?.click(); return; }
   if (bundle() || currentId) return goGlobe();
