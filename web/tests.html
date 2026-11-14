@@ -25,6 +25,7 @@
     import { lodHidden, swathCentre } from "./js/satview.js";
     import { passFeatures, hhOnlyDatesAt } from "./js/live.js";
     import { periodicPasses, sparkline } from "./js/timemachine.js";
+    import { rectRing, circleRing, ringAreaKm2, pixelsInRing, mercPixelHa, bundleArea, classStats, changeStats, areaCsv } from "./js/area.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -255,6 +256,30 @@
       eq(periodicPasses([{ date: "2026-07-01", geometry: "A", hv: false }, { date: "2026-08-01", geometry: "A", hv: true }]).length, 1);
       ok(sparkline([{ date: "a", hv: -15 }, { date: "c", hv: -20 }], "b").includes("tm-fire"));
     });
+
+    // area.js
+    test("area geometry: rectangle, circle and areas", () => {
+      eq(rectRing([1, 2], [0, 0]), [[0, 0], [1, 0], [1, 2], [0, 2], [0, 0]]);
+      near(ringAreaKm2(rectRing([0, 0], [1, 1])), 12364, 60);          // 1° x 1° at the equator
+      near(ringAreaKm2(circleRing([10, 45], 10)), Math.PI * 100, 2);
+      near(mercPixelHa(0), 37.4, 0.1);                                    // zoom-8 pixel at the equator
+    });
+    test("area pixels: centres inside the shape; huge shapes refused", () => {
+      const sel = pixelsInRing(rectRing([10, 45], [10.2, 45.2]));
+      ok(!sel.tooBig && sel.px.length > 500 && sel.px.length <= sel.width * sel.height);
+      ok(pixelsInRing(rectRing([0, 0], [10, 10])).tooBig);
+    });
+    {
+      const rulesT = await (await fetch("rules.json")).json();
+      const area = bundleArea(bundle, rectRing([29.0, 36.0], [29.2, 36.2]));
+      const t0 = await area.read("2026-07-22"), t1 = await area.read("2026-08-15");
+      const s0 = classStats(area, t0, rulesT, "showcase");
+      const c = changeStats(area, t0, t1, 3);
+      const okStats = area.n === 4 && Math.abs(s0.coverage - 0.75) < 1e-9 && c.lossHa > 0 && c.code.filter((x) => x === 1).length === 3;
+      const csv = areaCsv([{ date: "2026-07-22", geometry: null, stats: s0 }], rulesT, "test");
+      results.push(["area statistics on a showcase bundle: classes, change and CSV",
+        okStats && csv.split("\n")[1].startsWith("date,orbit,valid_ha,mean_hv_db"), JSON.stringify({ n: area.n, cov: s0.coverage, loss: c.lossHa })]);
+    }
 
     // story.js
     test("story validation catches unknown showcase and missing text", () => {

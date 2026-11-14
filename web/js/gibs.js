@@ -19,7 +19,7 @@ export function tileXY(lon, lat, z) {
 }
 
 const tiles = new Map();          // url -> Promise<ImageData|null>, small LRU
-async function getTile(url) {
+export async function getTile(url) {
   if (tiles.has(url)) return tiles.get(url);
   const p = (async () => {
     const r = await fetch(url);
@@ -31,7 +31,7 @@ async function getTile(url) {
     return ctx.getImageData(0, 0, bmp.width, bmp.height);
   })().catch(() => null);
   tiles.set(url, p);
-  if (tiles.size > 120) tiles.delete(tiles.keys().next().value);
+  if (tiles.size > 200) tiles.delete(tiles.keys().next().value);
   return p;
 }
 

@@ -32,6 +32,8 @@ function matches(when, { hh, hv }) {
 function firstClass(rules, v, source) {
   return rules.classes.find((c) => (!c.sources || c.sources.includes(source)) && matches(c.when, v));
 }
+/** Fast class id only (no confidence), for many pixels at once. */
+export const classId = (rules, hh, hv, source = "showcase") => firstClass(rules, { hh, hv }, source)?.id ?? null;
 
 /** {hh, hv} -> {id, label, color, plain, confidence: "high"|"low", alternatives: [id]} */
 export function classify(rules, { hh, hv }, source = "showcase") {

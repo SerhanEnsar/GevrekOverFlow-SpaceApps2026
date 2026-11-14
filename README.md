@@ -64,7 +64,7 @@ down, a saved copy in this repository takes over and the cover says so.
 - **Live hotspots** of the last 24 hours from NASA FIRMS (VIIRS NOAA-20).
 - **🔥 Latest fire** jumps to the newest wildfire; ◀ ▶ step back through older ones. With *only where NISAR
   imaged afterwards*, it skips fires that the radar has not seen since.
-- **Click a legend item** to hide or show its layer (e.g. the bright radar strips); the choice is remembered.
+- **Hide the side panel** with the ‹ tab on its edge; **click a legend item** to hide or show its layer (e.g. the bright radar strips); the choice is remembered.
 - **Locate me** flies to your position (it never leaves your device). Close up, the map switches to Blue
   Marble colours with terrain, and a **📷 satellite photo** (VIIRS, day by day) can be shown on top.
 
@@ -84,6 +84,20 @@ those dates and explains it:
 > **Example — Wildfire in India (5 Nov 2026).** Between the passes of 30 Oct and 11 Nov (same orbit), the
 > vegetation signal at the fire fell by **5.9 dB**: the site confirms a NASA-reported fire in NISAR data on its
 > own.
+
+### Draw an area: rectangle, circle or polygon
+
+The toolbar at the top of the map switches from **● Point** to **▭ Rectangle**, **◯ Circle** or **⬠ Polygon**.
+Every NISAR pixel inside the shape is read and classified:
+
+- **what is there** — the share and area (ha) of each land class,
+- **what changed** — how many hectares lost or gained vegetation signal between two dates, with a change map
+  clipped to the shape,
+- **a time machine of the whole area** — its mean vegetation signal over the periods, animated,
+- **⤓ CSV** — class areas and mean HV per date.
+
+Anywhere on Earth this uses NASA GIBS imagery (~500 m pixels, up to about 150 × 150 km); inside a showcase it
+uses the full-resolution 20 m data.
 
 ### Showcases: full-resolution analysis
 
@@ -259,7 +273,7 @@ python3 -m http.server 8765
 # open http://127.0.0.1:8765
 ```
 
-Browser tests: open <http://127.0.0.1:8765/tests.html> (56 tests).
+Browser tests: open <http://127.0.0.1:8765/tests.html> (59 tests).
 
 ### Pipeline (only to rebuild the showcases)
 
@@ -299,6 +313,7 @@ web/                    static site (GitHub Pages)
     live.js             live loaders (EONET, CMR GraphQL) with saved fallbacks
     map.js              MapLibre layers: imagery, fires, FIRMS, satellite
     globalcard.js       "what NISAR saw here" card
+    area.js, areacard.js, draw.js  area selection (rectangle, circle, polygon) and its analysis
     timemachine.js      periods of one place, animated
     gibs.js, rules.js   read GIBS colours → dB → class
     cmr.js              pass dates, orbit geometry, polarization mode

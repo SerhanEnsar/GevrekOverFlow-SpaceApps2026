@@ -41,9 +41,10 @@
   <main class="layout">
     <div id="map" class="space"></div>
 
+    <button id="panel-tab" class="panel-tab" aria-controls="panel" aria-expanded="true" title="Hide the panel">‹</button>
     <aside class="panel" id="panel">
       <section id="intro">
-        <h1>Earth is always moving</h1>
+        <h1>What NISAR sees</h1>
         <p>NISAR, a NASA–ISRO radar satellite, maps the planet day and night, through clouds and smoke.
           Its radar can tell dense vegetation from bare ground — and see when it burns.</p>
         <div class="legend-list" role="group" aria-label="Map layers — click to hide or show">
@@ -96,6 +97,13 @@
     <div id="explain" class="explain" hidden></div>
     <div id="story" class="story" hidden></div>
     <div id="sat-chip" class="sat-chip" hidden></div>
+    <div id="drawbar" class="drawbar" role="toolbar" aria-label="Selection mode">
+      <button data-mode="point" class="on" aria-pressed="true" title="Point: click a place to read it">● Point</button>
+      <button data-mode="rect" aria-pressed="false" title="Rectangle: drag to select an area">▭ Rectangle</button>
+      <button data-mode="circle" aria-pressed="false" title="Circle: press at the centre and drag the radius">◯ Circle</button>
+      <button data-mode="polygon" aria-pressed="false" title="Polygon: click the corners, double-click to finish">⬠ Polygon</button>
+    </div>
+    <div id="draw-hint" class="draw-hint" hidden></div>
     <div id="photo-ctl" class="photo-ctl" hidden>
       <button id="photo-btn" class="btn small" aria-pressed="false" title="Satellite photo of one day (VIIRS NOAA-20, 250 m; clouds possible)">📷 Satellite photo</button>
       <span id="photo-days" hidden><button id="photo-prev" class="btn small" title="Day before (find a clear day)">◀</button><span id="photo-date"></span><button id="photo-next" class="btn small" title="Day after">▶</button></span>

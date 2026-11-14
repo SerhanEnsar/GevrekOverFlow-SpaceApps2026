@@ -16,6 +16,9 @@ import { inRange } from "./fires.js";
 import { loadFiresLive, loadPassesLive, hhOnlyDatesAt, EONET_DAYS } from "./live.js";
 import { initCover } from "./cover.js";
 import { openGlobalCard } from "./globalcard.js";
+import { openAreaCard } from "./areacard.js";
+import { ringCentroid } from "./area.js";
+import { initDraw } from "./draw.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -98,7 +101,8 @@ function openShowcase(s) {
 }
 async function loadShowcase(s) {
   currentId = s.id;
-  $("gcard").hidden = true; setFireFocus(map, null);
+  if ($("panel").classList.contains("collapsed")) setPanel(true);
+  $("gcard").hidden = true; setFireFocus(map, null); draw.clear();
   flyToShowcase(map, s);
   setOpenShowcase(map, s.id);
   $("intro").hidden = true; $("showcase").hidden = false; $("globe-btn").hidden = false;
@@ -148,7 +152,7 @@ function goGlobe(fly = true) {
 $("globe-btn").addEventListener("click", () => goGlobe());
 
 const map = initGlobe("map", SHOWCASES, {
-  onShowcase: openShowcase,
+  onShowcase: (s) => { if (!draw?.busy) openShowcase(s); },
   onError: () => toast("Some NASA map tiles could not be loaded right now — the rest of the site keeps working."),
 });
 
@@ -171,6 +175,7 @@ const inShowcase = (lng, lat) => {
 };
 
 map.on("click", (e) => {
+  if (draw.busy) return;                                 // drawing a selection: draw.js handles it
   if (map.queryRenderedFeatures(e.point, { layers: ["showcase-dot"] }).length) return;
   const fire = map.getLayer("fires") && map.queryRenderedFeatures(e.point, { layers: ["fires"] })[0];
   if (fire) { fireIdx = fire.properties.i; focusFire(fireView[fireIdx]); return; }
@@ -178,10 +183,39 @@ map.on("click", (e) => {
   openGlobal(e.lngLat.lng, e.lngLat.lat);
 });
 
+// ---- area selection: rectangle, circle, polygon ------------------------------------
+const DRAW_HINT = {
+  rect: "Drag to draw a rectangle · Esc to cancel",
+  circle: "Press at the centre and drag the radius · Esc to cancel",
+  polygon: "Click the corners · click the first one or double-click to finish · Esc to cancel",
+};
+const draw = initDraw(map, {
+  onMode: (m) => {
+    document.querySelectorAll("#drawbar [data-mode]").forEach((b) => {
+      b.classList.toggle("on", b.dataset.mode === m); b.setAttribute("aria-pressed", String(b.dataset.mode === m));
+    });
+    $("draw-hint").textContent = DRAW_HINT[m] ?? "";
+    $("draw-hint").hidden = !DRAW_HINT[m];
+  },
+  onDone: (ring, shape) => { draw.setMode("point"); openArea(ring, shape); },
+});
+document.querySelectorAll("#drawbar [data-mode]").forEach((b) =>
+  b.addEventListener("click", () => draw.setMode(draw.mode === b.dataset.mode && b.dataset.mode !== "point" ? "point" : b.dataset.mode)));
+
+function openArea(ring, shape) {
+  if (!rules) return toast("Interpretation rules are missing — cannot read this area.");
+  $("explain").hidden = true;
+  map.stopSpin?.();
+  // Centred in a loaded showcase: use its 20 m data (the part outside the showcase is left out).
+  const b = bundle(), [cx, cy] = ringCentroid(ring), inside = b?.ts && inShowcase(cx, cy);
+  openAreaCard($("gcard"), ring, shape, { rules, bundle: inside ? b : null, onClose: () => draw.clear() });
+}
+
 // ---- global card (anywhere outside the showcases) -------------------------------
 function openGlobal(lng, lat, opts = {}) {
   if (!rules) return toast("Interpretation rules are missing — cannot read this place.");
   $("explain").hidden = true;
+  draw.clear();
   setPick(map, { lng, lat });
   openGlobalCard($("gcard"), lng, lat, {
     rules, fires: allFires,
@@ -233,6 +267,7 @@ function hoverGlobal(e) {
 
 map.on("mousemove", (e) => {
   cancelAnimationFrame(raf);
+  if (draw.busy) { $("explain").hidden = true; return; }
   if (!inShowcase(e.lngLat.lng, e.lngLat.lat)) { hoverGlobal(e); return; }
   clearTimeout(hoverTimer); hoverToken++;
   raf = requestAnimationFrame(() => {
@@ -270,6 +305,18 @@ Promise.all([mapLoaded, passesP]).then(([, { fc }]) => {
   // The globe spins, so "idle" may never come: give the first imagery tiles a moment, never block on them.
   setTimeout(() => cover.update("globe", 1, `${nisarDates.length} days of imagery`), 1500);
 });
+
+// ---- collapsible left panel (remembered on this device) ----------------------------
+function setPanel(open) {
+  $("panel").classList.toggle("collapsed", !open);
+  $("panel-tab").classList.toggle("collapsed", !open);
+  $("panel-tab").textContent = open ? "‹" : "›";
+  $("panel-tab").title = open ? "Hide the panel" : "Show the panel";
+  $("panel-tab").setAttribute("aria-expanded", String(open));
+  try { localStorage.setItem("nisar-panel", open ? "open" : "closed"); } catch { /* storage blocked */ }
+}
+$("panel-tab").addEventListener("click", () => setPanel($("panel").classList.contains("collapsed")));
+try { if (localStorage.getItem("nisar-panel") === "closed") setPanel(false); } catch { /* storage blocked */ }
 
 // ---- legend: click an item to hide or show its layers (remembered on this device) ----------
 const GROUPS = {
@@ -386,6 +433,7 @@ async function startSatellite() {
     setSatellite(map, sc);
     applyHidden();                                       // the satellite layers appear on the first tick
     satView.tick(satNow);
+    $("drawbar").hidden = satView.active;
     const n = sc.now, ns = n.lat >= 0 ? "N" : "S", ew = n.lon >= 0 ? "E" : "W";
     $("sat-chip").innerHTML = `🛰 <strong>NISAR now</strong> · ${Math.abs(n.lat).toFixed(1)}°${ns}, ${Math.abs(n.lon).toFixed(1)}°${ew}
       · ${Math.round(n.altKm)} km <span class="muted">· approximate, from public TLE (${(tle.date ?? "").slice(0, 10)}) · visualization only</span>`;
@@ -396,7 +444,8 @@ async function startSatellite() {
 }
 $("sat-btn").addEventListener("click", () => {
   if (!satNow) return toast("NISAR's position is not available right now.");
-  if (satView.active) return satView.exit();
+  if (satView.active) { satView.exit(); $("drawbar").hidden = false; return; }
+  draw.setMode("point"); $("drawbar").hidden = true;
   if (bundle()) goGlobe(false);
   $("gcard").hidden = true; $("explain").hidden = true;
   map.stopSpin?.();
@@ -422,6 +471,7 @@ $("method-close").addEventListener("click", closeMethod);
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || e.target.closest?.("input, select, textarea")) return;
   if (!$("method").hidden) return closeMethod();
+  if (draw.busy) { if (!draw.cancel()) draw.setMode("point"); return; }
   if (satView.active) return satView.exit();
   if (compare) return toggleCompare();
   if (!$("gcard").hidden) { $("gcard").querySelector(".gc-close")?.click(); return; }
