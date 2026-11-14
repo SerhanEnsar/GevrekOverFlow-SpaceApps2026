@@ -81,6 +81,23 @@ export function renderMethod(el, rules, manifests) {
       calm water almost black.</p>
     </section>
     <section>
+      <h3>Reading the colours</h3>
+      <p>Every NISAR image on the globe mixes three channels: <strong>red = HH</strong>, <strong>green = HV</strong>,
+      <strong>blue = HH−HV</strong>. Bright means a strong echo, dark means the wave did not come back.</p>
+      <table class="m-table"><thead><tr><th>Colour</th><th>What the radar felt</th><th>Usually</th></tr></thead><tbody>
+        <tr><td><span class="sw" style="background:#c8e04a"></span>Yellow-green</td><td>Strong HV: the wave bounced around inside a volume</td><td>Forest, dense shrubs, crops in full growth</td></tr>
+        <tr><td><span class="sw" style="background:#7b5ea7"></span>Purple-blue</td><td>Some HH, little HV: a surface without much on it</td><td>Fields, grassland, burned land</td></tr>
+        <tr><td><span class="sw" style="background:#1a2350"></span>Dark navy to black</td><td>Almost no echo: a smooth surface reflected the wave away, like a mirror</td><td>Calm water, sand, dry lake beds, smooth desert floor</td></tr>
+        <tr><td><span class="sw" style="background:#e8892e"></span>Orange</td><td>Rough surface (HH) but no volume (HV)</td><td>Rocks, stony slopes, dry riverbeds</td></tr>
+        <tr><td><span class="sw" style="background:#f1faee"></span>White, pink</td><td>Very strong HH from corners and walls (double bounce)</td><td>Buildings, steep slopes facing the radar</td></tr>
+      </tbody></table>
+      <p class="m-small">Things that are <em>not</em> the ground: a <strong>sharp straight edge</strong> is the side of
+      NISAR's ~242 km wide strip — beyond it the satellite did not pass in the last 12 days and the base map shows
+      through. Neighbouring strips can differ in tone because they were taken on different days (rain, frost) and at
+      different angles. Strips that look orange or yellow everywhere were often recorded in <strong>HH only</strong>:
+      without the green channel even a forest cannot look green, so the site never uses them for vegetation.</p>
+    </section>
+    <section>
       <h3>Interpretation rules</h3>
       ${rules ? rulesTable(rules) : "<p>Rules could not be loaded.</p>"}
     </section>
