@@ -46,11 +46,15 @@
         <h1>Earth is always moving</h1>
         <p>NISAR, a NASA–ISRO radar satellite, maps the planet day and night, through clouds and smoke.
           Its radar can tell dense vegetation from bare ground — and see when it burns.</p>
-        <p class="legend"><span class="swatch passes"></span> Where NISAR imaged the land in the last 12 days</p>
-        <p class="legend"><span class="swatch showcase"></span> Showcase — click to fly there</p>
-        <p class="legend"><span class="swatch fire"></span> Wildfire reported to NASA EONET</p>
-        <p class="legend"><span class="swatch hot"></span> Active fire detected in the last 24 h (NASA FIRMS)</p>
-        <p class="legend"><span class="swatch sat"></span> NISAR now: radar beam and the strip it just imaged (approximate)</p>
+        <div class="legend-list" role="group" aria-label="Map layers — click to hide or show">
+          <button class="legend" data-group="imagery" aria-pressed="true"><span class="swatch imagery"></span> NISAR radar images of the last 12 days</button>
+          <button class="legend" data-group="passes" aria-pressed="true"><span class="swatch passes"></span> Where NISAR imaged the land (outlines)</button>
+          <button class="legend" data-group="showcases" aria-pressed="true"><span class="swatch showcase"></span> Showcase — click to fly there</button>
+          <button class="legend" data-group="fires" aria-pressed="true"><span class="swatch fire"></span> Wildfire reported to NASA EONET</button>
+          <button class="legend" data-group="hotspots" aria-pressed="true"><span class="swatch hot"></span> Active fire detected in the last 24 h (NASA FIRMS)</button>
+          <button class="legend" data-group="sat" aria-pressed="true"><span class="swatch sat"></span> NISAR now: radar beam and the strip it just imaged (approximate)</button>
+        </div>
+        <p class="muted small">Click a legend item to hide or show it on the map.</p>
         <p class="muted small">Zoom in anywhere and click: we read NISAR's image of that place and explain it.</p>
       </section>
 

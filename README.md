@@ -29,6 +29,7 @@ Challenge: [Dancing with the SARs](https://www.spaceappschallenge.org/2026/chall
 - [Repository layout](#repository-layout)
 - [Limitations](#limitations)
 - [Team and use of AI](#team-and-use-of-ai)
+- [License](#license)
 
 ## Why
 
@@ -61,6 +62,7 @@ down, a saved copy in this repository takes over and the cover says so.
 - **Live hotspots** of the last 24 hours from NASA FIRMS (VIIRS NOAA-20).
 - **🔥 Latest fire** jumps to the newest wildfire; ◀ ▶ step back through older ones. With *only where NISAR
   imaged afterwards*, it skips fires that the radar has not seen since.
+- **Click a legend item** to hide or show its layer (e.g. the bright radar strips); the choice is remembered.
 - **Locate me** flies to your position (it never leaves your device). Close up, the map switches to Blue
   Marble colours with terrain, and a **📷 satellite photo** (VIIRS, day by day) can be shown on top.
 
@@ -325,3 +327,8 @@ support for technical code and writing.
 Research notes (in Turkish): [problem evidence](docs/01-why-kanit.md) ·
 [existing tools and gaps](docs/03-mevcut-araclar.md) · design:
 [v1](docs/specs/2026-11-14-nisar-zaman-makinesi-design.md), [v2](docs/specs/2026-11-14-v2-ek-tasarim.md)
+
+## License
+
+Code: [MIT](LICENSE). NASA data and imagery are provided by NASA and its partners and follow their own terms
+(NASA data are generally free of restrictions); please credit the sources listed above.

@@ -1,6 +1,6 @@
 // App wiring: globe, showcase panel, bottom time strip, method drawer, story.
 import { SHOWCASES } from "./config.js";
-import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase, setSatellite, addHotspots, setHotspotsVisible, setOptical } from "./map.js";
+import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase, setSatellite, addHotspots, setOptical } from "./map.js";
 import { loadTle, makePropagator, satelliteScene } from "./orbit.js";
 import { createSatView } from "./satview.js";
 import { loadManifest, loadTimeseries, seriesAt, valuesAt, seriesToCsv } from "./data.js";
@@ -259,9 +259,43 @@ Promise.all([mapLoaded, passesP]).then(([, { fc }]) => {
   map.getSource("passes")?.setData(fc);
   nisarDates = [...new Set(fc.features.map((f) => f.properties.date))].sort().reverse().slice(0, 12);
   addNisarDays(map, nisarDates, tileTemplate);
+  applyHidden();
   // The globe spins, so "idle" may never come: give the first imagery tiles a moment, never block on them.
   setTimeout(() => cover.update("globe", 1, `${nisarDates.length} days of imagery`), 1500);
 });
+
+// ---- legend: click an item to hide or show its layers (remembered on this device) ----------
+const GROUPS = {
+  imagery: (id) => id.startsWith("nisar-"),
+  passes: (id) => id.startsWith("passes-"),
+  showcases: (id) => id.startsWith("showcase-"),
+  fires: (id) => id === "fires" || id === "fire-focus",
+  hotspots: (id) => id.startsWith("firms-"),
+  sat: (id) => id.startsWith("sat-"),
+};
+let hiddenGroups;
+try { hiddenGroups = new Set(JSON.parse(localStorage.getItem("nisar-hidden") ?? "[]")); } catch { hiddenGroups = new Set(); }
+function applyHidden() {
+  if (!mapReady) return;
+  for (const l of map.getStyle().layers)
+    for (const [g, match] of Object.entries(GROUPS)) {
+      if (!match(l.id)) continue;
+      const want = hiddenGroups.has(g) ? "none" : "visible";
+      // Satellite view manages imagery (level of detail) and the beam itself: only ever hide there.
+      if (want === "visible" && satView.active && (g === "imagery" || g === "sat")) continue;
+      if ((map.getLayoutProperty(l.id, "visibility") ?? "visible") !== want) map.setLayoutProperty(l.id, "visibility", want);
+    }
+  document.querySelectorAll(".legend[data-group]").forEach((b) => b.setAttribute("aria-pressed", String(!hiddenGroups.has(b.dataset.group))));
+  $("hotspots").checked = !hiddenGroups.has("hotspots");
+  if (hiddenGroups.has("sat")) $("sat-chip").hidden = true;
+}
+function setGroup(g, visible) {
+  visible ? hiddenGroups.delete(g) : hiddenGroups.add(g);
+  try { localStorage.setItem("nisar-hidden", JSON.stringify([...hiddenGroups])); } catch { /* storage blocked */ }
+  applyHidden();
+}
+document.querySelectorAll(".legend[data-group]").forEach((b) =>
+  b.addEventListener("click", () => setGroup(b.dataset.group, hiddenGroups.has(b.dataset.group))));
 
 // ---- fires: time range, markers, "latest fire" and stepping -------------------------
 const today = new Date().toISOString().slice(0, 10);
@@ -270,7 +304,7 @@ let allFires = [], fireView = [], fireIdx = -1, fireDays = 30;
 function refreshFires() {
   fireView = inRange(allFires, fireDays, today);
   fireIdx = -1;
-  if (mapReady) setFires(map, fireView, today);
+  if (mapReady) { setFires(map, fireView, today); applyHidden(); }
   $("fire-count").textContent = `${fireView.length.toLocaleString("en")} fires`;
 }
 document.querySelectorAll("#fires .seg-btn").forEach((b) => b.addEventListener("click", () => {
@@ -343,11 +377,12 @@ async function startSatellite() {
     if (!sc) return;
     satNow = sc.now;
     setSatellite(map, sc);
+    applyHidden();                                       // the satellite layers appear on the first tick
     satView.tick(satNow);
     const n = sc.now, ns = n.lat >= 0 ? "N" : "S", ew = n.lon >= 0 ? "E" : "W";
     $("sat-chip").innerHTML = `🛰 <strong>NISAR now</strong> · ${Math.abs(n.lat).toFixed(1)}°${ns}, ${Math.abs(n.lon).toFixed(1)}°${ew}
       · ${Math.round(n.altKm)} km <span class="muted">· approximate, from public TLE (${(tle.date ?? "").slice(0, 10)}) · visualization only</span>`;
-    $("sat-chip").hidden = false;
+    $("sat-chip").hidden = hiddenGroups.has("sat");
   };
   tick();
   setInterval(tick, 1000);
@@ -394,9 +429,9 @@ $("summary").addEventListener("click", (e) => {
 const utcDay = (k) => new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
 mapLoaded.then(() => {
   addHotspots(map, [utcDay(1), utcDay(0)]);
-  setHotspotsVisible(map, $("hotspots").checked);
+  applyHidden();
 });
-$("hotspots").addEventListener("change", (e) => mapReady && setHotspotsVisible(map, e.target.checked));
+$("hotspots").addEventListener("change", (e) => setGroup("hotspots", e.target.checked));
 // The optical photo only makes sense when zoomed in; clouds can be skipped by stepping days back.
 let photoOn = false, photoAgo = 1;
 const photoSync = () => {

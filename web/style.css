@@ -261,3 +261,13 @@ kbd { font: 600 10px/1 ui-monospace, monospace; padding: 2px 4px; margin-left: 4
 .tm-spark circle.on { fill: #fff; r: 4; }
 .tm-fire { stroke: #ff5a36; stroke-dasharray: 3 3; }
 .tm-fire-t { fill: #ff8a5c; font-size: 9px; }
+/* ---- legend items toggle their map layers ---- */
+.legend-list { display: grid; gap: 2px; margin: 6px 0; }
+button.legend { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 6px; margin: 0 -6px;
+  border-radius: 6px; font-size: 13px; color: var(--muted); cursor: pointer; transition: background .15s, opacity .15s; }
+button.legend:hover { background: #ffffff0f; color: var(--text); }
+button.legend:focus-visible { outline: 2px solid #5ef2ff; outline-offset: 1px; }
+button.legend[aria-pressed="false"] { opacity: .42; text-decoration: line-through; text-decoration-color: #ffffff55; }
+button.legend[aria-pressed="false"] .swatch { background: transparent !important; box-shadow: none; outline: 1.5px solid currentColor; outline-offset: -1.5px; }
+button.legend .swatch { flex: none; }
+.swatch.imagery { background: linear-gradient(135deg, #c8e04a 0 50%, #7b5ea7 50% 100%); }

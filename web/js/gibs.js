@@ -51,26 +51,44 @@ export async function readPixel(lon, lat, date) {
   return k >= 5 ? { r: r / k, g: g / k, b: b / k } : null;
 }
 
-/** A size x size canvas of the GIBS image centred on lon/lat (stitched from up to 4 tiles), or null. */
-export async function cropAround(lon, lat, date, size = 96) {
-  const { x, y, px, py } = tileXY(lon, lat, READ_ZOOM);
-  const gx = x * 256 + px - size / 2, gy = y * 256 + py - size / 2;   // global pixel of the top-left corner
-  const out = new OffscreenCanvas(size, size);
-  const ctx = out.getContext("2d");
+const baseUrl = (z, x, y) =>
+  `${BASE}/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/${z}/${y}/${x}.jpeg`;
+
+/** Draw the tiles (from urlOf(z, x, y)) covering a size x size window whose top-left global pixel is gx, gy. */
+async function stitch(ctx, urlOf, gx, gy, size) {
   let any = false;
   for (let ty = Math.floor(gy / 256); ty <= Math.floor((gy + size - 1) / 256); ty++)
     for (let tx = Math.floor(gx / 256); tx <= Math.floor((gx + size - 1) / 256); tx++) {
-      const img = await getTile(tileUrl(date, READ_ZOOM, tx, ty));
+      const img = await getTile(urlOf(READ_ZOOM, tx, ty));
       if (!img) continue;
       any = true;
       const tmp = new OffscreenCanvas(256, 256);
       tmp.getContext("2d").putImageData(img, 0, 0);
       ctx.drawImage(tmp, tx * 256 - gx, ty * 256 - gy);
     }
-  if (!any) return null;
+  return any;
+}
+
+/**
+ * A size x size canvas of the GIBS NISAR image centred on lon/lat (stitched from up to 4 tiles), or null.
+ * Where NISAR did not image (outside its strip) a dimmed Blue Marble map shows instead of black.
+ */
+export async function cropAround(lon, lat, date, size = 96) {
+  const { x, y, px, py } = tileXY(lon, lat, READ_ZOOM);
+  const gx = x * 256 + px - size / 2, gy = y * 256 + py - size / 2;   // global pixel of the top-left corner
+  const radar = new OffscreenCanvas(size, size);
+  const rctx = radar.getContext("2d");
+  if (!(await stitch(rctx, (z, tx, ty) => tileUrl(date, z, tx, ty), gx, gy, size))) return null;
   // Empty (fully transparent or black) crops mean "no image on this date".
-  const d = ctx.getImageData(0, 0, size, size).data;
+  const d = rctx.getImageData(0, 0, size, size).data;
   let valid = 0;
   for (let i = 0; i < d.length; i += 4) if (d[i + 3] && d[i] + d[i + 1] + d[i + 2]) valid++;
-  return valid > size * size * 0.05 ? out : null;
+  if (valid <= size * size * 0.05) return null;
+  const out = new OffscreenCanvas(size, size);
+  const ctx = out.getContext("2d");
+  ctx.filter = "grayscale(0.7) brightness(0.55)";
+  await stitch(ctx, baseUrl, gx, gy, size);
+  ctx.filter = "none";
+  ctx.drawImage(radar, 0, 0);
+  return out;
 }
