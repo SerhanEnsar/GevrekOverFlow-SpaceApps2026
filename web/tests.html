@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Unit tests</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; background: #0f1418; color: #e8edf0; padding: 20px; }
+    .pass { color: #3fb37f; } .fail { color: #e0573b; } #summary { font-weight: 700; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div id="summary">running…</div>
+  <ul id="results"></ul>
+  <script type="module">
+    import { decodeDb, pixelOf, seriesAt } from "./js/data.js";
+
+    const results = [];
+    const test = (name, fn) => {
+      try { fn(); results.push([name, true]); }
+      catch (e) { results.push([name, false, e.message]); }
+    };
+    const eq = (a, b) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${JSON.stringify(a)} !== ${JSON.stringify(b)}`); };
+    const near = (a, b, tol = 1e-9) => { if (Math.abs(a - b) > tol) throw new Error(`${a} !≈ ${b}`); };
+
+    // Fake 2x2 bundle, 2 dates. db = -30 + 0.15 * v
+    const scale = { offset: -30, step: 0.15 };
+    const manifest = { bbox: [29.0, 36.0, 29.2, 36.2], dates: ["2026-07-22", "2026-08-15"], grid: { width: 2, height: 2 }, db_scale: scale };
+    // layout [t][pol][row][col]
+    const ts = new Uint8Array([
+      100, 0, 100, 100,   80, 0, 80, 80,      // t0 HH, t0 HV  (pixel row0,col1 has no data)
+      100, 0, 100, 100,   60, 0, 60, 60,      // t1 HH, t1 HV
+    ]);
+    const bundle = { manifest, ts };
+
+    test("decodeDb(0) is null (no data)", () => eq(decodeDb(0, scale), null));
+    test("decodeDb(200) is 0 dB", () => near(decodeDb(200, scale), 0));
+    test("pixelOf outside bbox is null", () => eq(pixelOf(manifest, 28.9, 36.1), null));
+    test("pixelOf top-left corner is col 0 row 0", () => eq(pixelOf(manifest, 29.01, 36.19), { col: 0, row: 0 }));
+    test("pixelOf bottom-right edge stays inside grid", () => eq(pixelOf(manifest, 29.2, 36.0), { col: 1, row: 1 }));
+    test("seriesAt outside bbox is null", () => eq(seriesAt(bundle, 30, 36.1), null));
+    test("seriesAt on a no-data pixel is null", () => eq(seriesAt(bundle, 29.15, 36.15), null));
+    test("seriesAt single pixel returns HV per date", () => {
+      const s = seriesAt(bundle, 29.05, 36.15);
+      eq(s.dates, manifest.dates); near(s.hv[0], -18); near(s.hv[1], -21);
+    });
+    test("seriesAt radius averages only pixels with data", () => {
+      const s = seriesAt(bundle, 29.1, 36.1, 20000);
+      near(s.hh[0], -15);   // all valid pixels have v=100
+    });
+
+    const failed = results.filter((r) => !r[1]).length;
+    document.getElementById("summary").textContent = `${results.length - failed}/${results.length} passed`;
+    document.getElementById("summary").className = failed ? "fail" : "pass";
+    document.getElementById("results").innerHTML = results.map(([n, ok, msg]) =>
+      `<li class="${ok ? "pass" : "fail"}">${ok ? "PASS" : "FAIL"} — ${n}${msg ? ` (${msg})` : ""}</li>`).join("");
+    window.__TEST_RESULTS__ = { total: results.length, failed };
+  </script>
+</body>
+</html>

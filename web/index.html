@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NISAR Time Machine — GevrekOverFlow</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>NISAR Time Machine</strong>
+      <span class="sub">See how Earth's surface changes through radar eyes</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div id="map"></div>
+
+    <aside class="panel" id="panel">
+      <section id="intro">
+        <h1>Earth is always moving</h1>
+        <p>NISAR, a NASA–ISRO radar satellite, maps the planet day and night, through clouds and smoke.</p>
+        <p class="legend"><span class="swatch passes"></span> Where NISAR imaged the land in the last 7 days</p>
+        <p class="legend"><span class="swatch showcase"></span> Showcase — click to fly there</p>
+      </section>
+      <section id="showcase" hidden>
+        <h2 id="showcase-title"></h2>
+        <p id="showcase-sub" class="muted"></p>
+      </section>
+    </aside>
+  </main>
+
+  <script type="module">
+    import { SHOWCASES } from "./js/config.js";
+    import { initGlobe, flyToShowcase } from "./js/map.js";
+
+    const map = initGlobe("map", SHOWCASES, {
+      onShowcase: (s) => {
+        flyToShowcase(map, s);
+        document.getElementById("intro").hidden = true;
+        document.getElementById("showcase").hidden = false;
+        document.getElementById("showcase-title").textContent = s.label;
+        document.getElementById("showcase-sub").textContent = s.subtitle;
+      },
+    });
+    window.__map = map; // for manual inspection during development
+  </script>
+</body>
+</html>
