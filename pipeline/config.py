@@ -31,11 +31,13 @@ REGIONS = {
         "bbox": (-3.26, 40.97, -2.86, 41.27),
         "event_date": "2026-07-17",          # NASA EONET "Wildfire in Spain 1029540", 31,297 ha
         "eonet_point": (-3.058, 41.114),
-        "search_start": "2026-06-01",
+        "search_start": "2025-11-01",
         "search_end": "2026-10-31",
         # Both cover 100 % of the AOI; 095D068 has scenes 3 days before / 9 days after the fire.
         "geometry_groups": ["095D068", "159A022"],
         "default_group": "095D068",
+        # Dates from another orbit added to the timeline (only HV is comparable across orbits).
+        "extra_dates": {"159A022": ["2026-01-20"]},
     },
 }
 

@@ -13,7 +13,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from change import change_rgba, log_ratio
+import math
+
+from change import change_rgba, log_ratio, region_summary
 from config import REGIONS
 from cube import Cube
 from frames import multidate_rgb, rgb_composite
@@ -40,7 +42,9 @@ def _webp(rgba: np.ndarray, path: Path) -> Path:
 
 
 def write_web_bundle(cube20: Cube, cube40: Cube, calendar: dict, region_key: str, out_dir: Path,
-                     geometry: str) -> Path:
+                     geometry: str, date_geometry: dict[str, str] | None = None) -> Path:
+    """date_geometry: dates imaged from another orbit ({date: geometry}); all others use `geometry`.
+    Only HV is comparable across orbits; the summary uses same-orbit dates only."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     region = REGIONS[region_key]
@@ -66,6 +70,13 @@ def write_web_bundle(cube20: Cube, cube40: Cube, calendar: dict, region_key: str
     (out_dir / "timeseries.bin").write_bytes(ts.tobytes(order="C"))
     (out_dir / "calendar.json").write_text(json.dumps(calendar, indent=1))
 
+    date_geom = {d: (date_geometry or {}).get(d, geometry) for d in dates}
+    w, s_, e, n = cube40.bbox
+    H, W = cube40.hv.shape[1:]
+    px_ha = ((e - w) / W * 111320 * math.cos(math.radians((s_ + n) / 2))) * ((n - s_) / H * 111320) / 1e4
+    summary = region_summary(cube40.hv, cube40.dates, event, px_ha,
+                             comparable=[d for d in dates if date_geom[d] == geometry])
+
     manifest = {
         "region": region_key,
         "label": region["label"],
@@ -78,6 +89,8 @@ def write_web_bundle(cube20: Cube, cube40: Cube, calendar: dict, region_key: str
         "frames": frames,
         "change": change,
         "multidate": "multidate.webp" if pre and post else None,
+        "date_geometry": date_geom,
+        "summary": summary,
         "sources": ["NISAR L2 GCOV (NASA-ISRO), ASF DAAC"],
     }
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False))

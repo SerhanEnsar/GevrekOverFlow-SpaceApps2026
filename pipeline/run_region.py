@@ -38,7 +38,14 @@ def main():
     tifs = collect_tifs(CUBE / args.region / group)
     if not tifs:
         raise SystemExit(f"No HH+HV GeoTIFFs in {CUBE / args.region / group}. Run subset.py first.")
-    print(f"{len(tifs)} dates: {', '.join(sorted(tifs))}")
+    date_geometry = {}
+    for geom, dates in region.get("extra_dates", {}).items():
+        extra = collect_tifs(CUBE / args.region / geom)
+        for d in dates:
+            if d in extra and d not in tifs:
+                tifs[d] = extra[d]
+                date_geometry[d] = geom
+    print(f"{len(tifs)} dates: {', '.join(sorted(tifs))}  (other orbit: {date_geometry or 'none'})")
 
     cube20 = build_cube(tifs, region["bbox"], res_deg=0.0002)
     cube40 = build_cube(tifs, region["bbox"], res_deg=0.0004)
@@ -47,7 +54,8 @@ def main():
             c.hh[t], c.hv[t] = boxcar_db(c.hh[t]), boxcar_db(c.hv[t])
 
     calendar = comparable_calendar(group_scenes(scene_records(region)), region["event_date"])
-    out = write_web_bundle(cube20, cube40, calendar, args.region, WEB_DATA / args.region, geometry=group)
+    out = write_web_bundle(cube20, cube40, calendar, args.region, WEB_DATA / args.region, geometry=group,
+                           date_geometry=date_geometry)
     size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file()) / 1024**2
     print(f"bundle → {out} ({size:.1f} MB)")
 

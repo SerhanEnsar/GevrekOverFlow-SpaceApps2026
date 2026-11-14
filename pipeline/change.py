@@ -28,3 +28,33 @@ def change_rgba(diff_db: np.ndarray) -> np.ndarray:
         out[..., i] = np.where(d < 0, DROP_RGB[i], RISE_RGB[i])
     out[..., 3] = np.round(alpha).astype(np.uint8)
     return out
+
+
+def _mean(a: np.ndarray):
+    v = np.nanmean(a) if np.isfinite(a).any() else np.nan
+    return None if not np.isfinite(v) else round(float(v), 2)
+
+
+def region_summary(hv: np.ndarray, dates: list[str], event: str, px_ha: float,
+                   comparable: list[str] | None = None) -> dict | None:
+    """Burned-area summary for the info box.
+
+    Burned = HV fell by >= CHANGE_DB from the last comparable date before the event to the first
+    one after it. Control = pixels that changed by less than 1 dB. Returns per-date mean HV of both
+    groups (None where there is no data), or None without a comparable pre/post pair."""
+    ok = [d for d in dates if comparable is None or d in comparable]
+    pre = [d for d in ok if d < event]
+    post = [d for d in ok if d >= event]
+    if not pre or not post:
+        return None
+    a, b = hv[dates.index(pre[-1])], hv[dates.index(post[0])]
+    burn = burn_mask(a, b)
+    with np.errstate(invalid="ignore"):
+        ctrl = np.abs(b - a) < 1.0
+    return {
+        "pre_date": pre[-1],
+        "post_date": post[0],
+        "burn_ha": round(float(burn.sum()) * px_ha, 1),
+        "burn_hv": [_mean(hv[t][burn]) for t in range(len(dates))],
+        "control_hv": [_mean(hv[t][ctrl]) for t in range(len(dates))],
+    }

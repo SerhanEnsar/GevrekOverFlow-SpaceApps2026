@@ -35,7 +35,8 @@ def test_nan_round_trips_and_out_of_range_is_clipped():
 def bundle(tmp_path_factory):
     out = tmp_path_factory.mktemp("web") / "mugla"
     cal = {"event_date": "2026-07-28", "groups": [{"geometry": "036D070", "pre": DATES[:2], "post": DATES[2:]}]}
-    write_web_bundle(cube(0.0002), cube(0.0004), cal, "mugla", out, geometry="036D070")
+    write_web_bundle(cube(0.0002), cube(0.0004), cal, "mugla", out, geometry="036D070",
+                     date_geometry={DATES[0]: "028A020"})
     return out
 
 
@@ -62,3 +63,12 @@ def test_bundle_fits_size_budget(bundle):
     total = sum(p.stat().st_size for p in bundle.rglob("*") if p.is_file())
     biggest = max(p.stat().st_size for p in bundle.rglob("*") if p.is_file())
     assert total <= 40 * 1024**2 and biggest <= 25 * 1024**2
+
+
+def test_manifest_marks_other_orbit_dates_and_has_summary(bundle):
+    m = json.loads((bundle / "manifest.json").read_text())
+    assert m["date_geometry"] == {DATES[0]: "028A020", DATES[1]: "036D070",
+                                  DATES[2]: "036D070", DATES[3]: "036D070"}
+    s = m["summary"]
+    assert s["pre_date"] == DATES[1] and s["post_date"] == DATES[2]   # other-orbit date never used
+    assert len(s["burn_hv"]) == len(DATES) and s["burn_ha"] >= 0

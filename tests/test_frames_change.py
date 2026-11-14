@@ -54,3 +54,22 @@ def test_change_rgba_colours():
 def test_change_rgba_opacity_grows_with_magnitude():
     out = change_rgba(np.array([[-3.5, -8.0]]))
     assert out[0, 1, 3] > out[0, 0, 3]
+
+
+def test_region_summary_burn_area_and_series():
+    from change import region_summary
+    dates = ["2026-01-20", "2026-07-14", "2026-07-26", "2026-10-18"]
+    hv = np.full((4, 2, 2), -15.0, np.float32)
+    hv[2:, 0, 0] = -19.0                       # burned pixel after the event
+    hv[:, 1, 1] = np.nan                       # no data
+    s = region_summary(hv, dates, "2026-07-17", px_ha=0.5, comparable=dates[1:])
+    assert s["pre_date"] == "2026-07-14" and s["post_date"] == "2026-07-26"
+    assert s["burn_ha"] == 0.5
+    assert s["burn_hv"] == [-15.0, -15.0, -19.0, -19.0]
+    assert s["control_hv"] == [-15.0, -15.0, -15.0, -15.0]
+
+
+def test_region_summary_without_post_date_is_none():
+    from change import region_summary
+    hv = np.full((1, 2, 2), -15.0, np.float32)
+    assert region_summary(hv, ["2026-07-14"], "2026-07-17", px_ha=1) is None

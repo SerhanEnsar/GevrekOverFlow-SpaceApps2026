@@ -29,6 +29,23 @@
   "2026-08-15": "change/2026-08-15.webp"
  },
  "multidate": "multidate.webp",
+ "date_geometry": {
+  "2026-07-22": "036D070",
+  "2026-08-15": "036D070"
+ },
+ "summary": {
+  "pre_date": "2026-07-22",
+  "post_date": "2026-08-15",
+  "burn_ha": 9.1,
+  "burn_hv": [
+   -10.38,
+   -14.44
+  ],
+  "control_hv": [
+   -11.49,
+   -11.41
+  ]
+ },
  "sources": [
   "NISAR L2 GCOV (NASA-ISRO), ASF DAAC"
  ]
