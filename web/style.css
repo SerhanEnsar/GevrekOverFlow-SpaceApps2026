@@ -32,3 +32,14 @@ body { display: flex; flex-direction: column; }
 .swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
 .swatch.passes { background: var(--passes); opacity: .7; }
 .swatch.showcase { background: var(--showcase); border-radius: 50%; }
+
+/* Time machine */
+#timeline { margin-top: 12px; }
+.tl-row { display: flex; align-items: center; gap: 8px; }
+.tl-play { background: #1d2731; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.tl-slider { flex: 1; accent-color: var(--showcase); }
+.tl-label { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 150px; text-align: right; }
+.tl-ticks { position: relative; height: 10px; margin: 2px 46px 0 44px; }
+.tl-tick { position: absolute; top: 0; width: 2px; height: 6px; background: var(--muted); transform: translateX(-1px); }
+.tl-tick.tl-event { background: var(--showcase); height: 10px; }
+.tl-note { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }

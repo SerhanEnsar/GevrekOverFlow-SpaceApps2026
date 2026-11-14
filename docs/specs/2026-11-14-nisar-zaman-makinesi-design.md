@@ -26,7 +26,7 @@ Ekibin hedefi: Mevcut araçların **yapmadığı** şeyleri yapan, kullanımı k
 |---|---|
 | K1 | Challenge değişmiyor: Dancing with the SARs |
 | K2 | Yeniliğin çekirdeği kategoriden bağımsız boşlukları kapatan arayüz: **G1** NISAR zaman serisi · **G2** karşılaştırılabilir tarihleri bulma · **G3** renkleri ve polarizasyonu yerinde açıklama · **G6** anlatı ile etkileşimin birlikte olması · **G7** geçiş takvimi |
-| K3 | Tek alanla başlanır, mimari modülerdir. **İlk vitrin: Muğla–Fethiye yangını (28.07.2026) ve çevresindeki tarlalar** |
+| K3 | Tek alanla başlanır, mimari modülerdir. **Ana vitrin: İspanya (Guadalajara) yangını, 17.07.2026.** **Karşılaştırma vitrini: Muğla–Fethiye yangını, 28.07.2026** — L-bant bu yangında iz bırakmadı (bkz. `docs/gonogo.md`); hipotez bölümü olarak kullanılır |
 | K4 | Arayüz katmanlı: varsayılan **sade mod** (halk, öğrenci) ve açılabilir **uzman modu** (araştırmacı) |
 | K5 | Kapsam dışı: abonelik, kullanıcı hesabı, uyarı sistemi, dünyanın her yerinde canlı işleme, diğer kategoriler (bunlar gelecek vizyonu) |
 | K6 | Yalnızca NASA veri kaynakları kullanılır |
@@ -87,7 +87,7 @@ NASA CMR / ASF ──► pipeline/ (Python, önceden çalışır) ──► web/
 | P11 | Güven maskesi | Dağlık yamaçlarda layover/gölge → düşük güven işareti | Son |
 | P12 | Doğrulama | Yanık izi ↔ OPERA DIST/optik örtüşmesi; tarla döngüsü ↔ NDVI | Son |
 
-**Vitrin verisi:** Muğla için `036D070` geometrisi (descending; yangından önce 3, sonra 7 sahne; bölgeyi %100 kapsıyor). Aynı tarihlerde ascending `028A020` de %100 kapsıyor ve P11 için kullanılır. `108D070` (%81) ve `129A020` (%72) bölgeyi yeterince kapsamadığı için kullanılmaz.
+**Vitrin verisi:** Ana vitrin İspanya `095D068` (descending; yangından önce 3, sonra 7 sahne; bölgeyi %100 kapsıyor). Karşılaştırma için Muğla `036D070` geometrisi (descending; yangından önce 3, sonra 7 sahne; bölgeyi %100 kapsıyor). Aynı tarihlerde ascending `028A020` de %100 kapsıyor ve P11 için kullanılır. `108D070` (%81) ve `129A020` (%72) bölgeyi yeterince kapsamadığı için kullanılmaz.
 
 ### 5.2 Tarayıcı bileşenleri
 

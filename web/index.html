@@ -28,23 +28,40 @@
       <section id="showcase" hidden>
         <h2 id="showcase-title"></h2>
         <p id="showcase-sub" class="muted"></p>
+        <div id="timeline"></div>
+        <p id="status" class="muted"></p>
       </section>
     </aside>
   </main>
 
   <script type="module">
     import { SHOWCASES } from "./js/config.js";
-    import { initGlobe, flyToShowcase } from "./js/map.js";
+    import { initGlobe, flyToShowcase, setFrame } from "./js/map.js";
+    import { loadBundle } from "./js/data.js";
+    import { initTimeline } from "./js/timeline.js";
 
-    const map = initGlobe("map", SHOWCASES, {
-      onShowcase: (s) => {
-        flyToShowcase(map, s);
-        document.getElementById("intro").hidden = true;
-        document.getElementById("showcase").hidden = false;
-        document.getElementById("showcase-title").textContent = s.label;
-        document.getElementById("showcase-sub").textContent = s.subtitle;
-      },
-    });
+    const $ = (id) => document.getElementById(id);
+
+    async function openShowcase(s) {
+      flyToShowcase(map, s);
+      $("intro").hidden = true;
+      $("showcase").hidden = false;
+      $("showcase-title").textContent = s.label;
+      $("showcase-sub").textContent = s.subtitle;
+      $("timeline").innerHTML = "";
+      $("status").textContent = "Loading radar data…";
+      try {
+        const bundle = await loadBundle(s.id);
+        window.__bundle = bundle;
+        $("status").textContent = "";
+        initTimeline($("timeline"), bundle.manifest, `data/${s.id}`,
+          (date, url) => setFrame(map, url, bundle.manifest.bbox));
+      } catch (e) {
+        $("status").textContent = "Radar data for this showcase is still being prepared.";
+      }
+    }
+
+    const map = initGlobe("map", SHOWCASES, { onShowcase: openShowcase });
     window.__map = map; // for manual inspection during development
   </script>
 </body>
