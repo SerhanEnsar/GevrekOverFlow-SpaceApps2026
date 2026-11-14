@@ -48,7 +48,11 @@ export async function openGlobalCard(el, lng, lat, ctx, { event = null, title = 
   let [before, after] = defaultPassPair(passes, event);
   const fires = ctx.fires ? nearby(ctx.fires, lng, lat, 50).slice(0, 5) : [];
 
+  const latest = passes[0];
+  const noPassYet = event && latest.date <= event;
   body.innerHTML = `
+    ${noPassYet ? `<p class="gc-warn">NISAR has not imaged this place since the fire (${event}) yet — its last pass was ${latest.date}.
+      Its 12-day cycle will bring it back soon. Showing the two latest images.</p>` : ""}
     <div class="gc-dates">
       <label>Before<select class="gc-before">${passes.map((p) => opt(p, p === before)).join("")}</select></label>
       <label>After<select class="gc-after">${passes.map((p) => opt(p, p === after)).join("")}</select></label>

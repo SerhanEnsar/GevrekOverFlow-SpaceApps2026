@@ -36,3 +36,31 @@ export async function passDates(lon, lat, { after = null } = {}) {
   cache.set(key, out);
   return out;
 }
+
+/** Is there any NISAR GCOV pass over the point after `date`? (cheap: only hit counts) */
+export async function hasPassAfter(lon, lat, date) {
+  const hits = await Promise.all(GCOV_COLLECTIONS.map(async (sn) => {
+    const q = new URLSearchParams({ short_name: sn, point: `${lon},${lat}`, page_size: "0",
+      temporal: `${date}T23:59:59Z,` });
+    const r = await fetch(`${CMR}?${q}`);
+    return r.ok ? +(r.headers.get("CMR-Hits") ?? 0) : 0;
+  }));
+  return hits.some((h) => h > 0);
+}
+
+/** Point-in-polygon (ray casting) for a GeoJSON Polygon's outer ring. */
+export function inRing([x, y], ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** Local answer from the recent-passes file: true/false, or null when the date is older than the file. */
+export function imagedAfterLocal(fc, lon, lat, date) {
+  const dates = fc.features.map((f) => f.properties.date).sort();
+  if (!dates.length || date < dates[0]) return null;
+  return fc.features.some((f) => f.properties.date > date && inRing([lon, lat], f.geometry.coordinates[0]));
+}

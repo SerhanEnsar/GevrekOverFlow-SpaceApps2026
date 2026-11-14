@@ -18,7 +18,7 @@
     import { classify, interpret, gibsToDb, validateRules } from "./js/rules.js";
     import { validateStory } from "./js/story.js";
     import { SHOWCASES } from "./js/config.js";
-    import { geometryKey, parsePasses } from "./js/cmr.js";
+    import { geometryKey, parsePasses, inRing, imagedAfterLocal } from "./js/cmr.js";
     import { tileXY } from "./js/gibs.js";
     import { parseLive, mergeFires, inRange, nearby, distanceKm } from "./js/fires.js";
 
@@ -146,6 +146,16 @@
       const e = (t, d) => ({ title: `NISAR_L2_PR_GCOV_026_${t}_2005`, time_start: d + "T19:09:24Z" });
       eq(parsePasses([[e("095_D_068", "2026-07-14"), e("159_A_022", "2026-07-19")], [e("095_D_068", "2026-07-14")]]),
         [{ date: "2026-07-19", geometry: "159A022" }, { date: "2026-07-14", geometry: "095D068" }]);
+    });
+
+    test("recent fire: imaged afterwards only if a later pass covers it", () => {
+      const sq = [[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]];
+      const fc = { features: [{ properties: { date: "2026-11-05" }, geometry: { coordinates: [sq] } },
+                              { properties: { date: "2026-11-10" }, geometry: { coordinates: [sq] } }] };
+      eq(inRing([1, 1], sq), true); eq(inRing([3, 1], sq), false);
+      eq(imagedAfterLocal(fc, 1, 1, "2026-11-08"), true);
+      eq(imagedAfterLocal(fc, 1, 1, "2026-11-10"), false);
+      eq(imagedAfterLocal(fc, 1, 1, "2026-10-01"), null);     // older than the file: ask CMR
     });
 
     // gibs.js
