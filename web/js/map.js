@@ -29,11 +29,8 @@ export function initGlobe(container, showcases, { onShowcase } = {}) {
           attribution: "ASTER GDEM via NASA GIBS",
           tiles: [gibs("ASTER_GDEM_Greyscale_Shaded_Relief", null, "GoogleMapsCompatible_Level12", "jpg")],
         },
-        // GIBS label tiles return HTTP 500 at high zooms; z9 tiles are overzoomed instead.
-        labels: {
-          type: "raster", tileSize: 256, maxzoom: 9,
-          tiles: [gibs("Reference_Labels_15m", null, "GoogleMapsCompatible_Level13", "png")],
-        },
+        // Note: GIBS Reference_Labels_15m is not used — its tiles render as opaque black
+        // in MapLibre and hide every layer below them.
         passes: { type: "geojson", data: "data/global/passes.geojson", attribution: "NISAR footprints: NASA CMR" },
         showcases: {
           type: "geojson",
@@ -54,7 +51,6 @@ export function initGlobe(container, showcases, { onShowcase } = {}) {
           paint: { "fill-color": "#ffd23f", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 1, 0.18, 8, 0.04] } },
         { id: "passes-line", type: "line", source: "passes", maxzoom: 9,
           paint: { "line-color": "#ffd23f", "line-width": 0.6, "line-opacity": 0.7 } },
-        { id: "labels", type: "raster", source: "labels", minzoom: 4 },
         { id: "showcase-halo", type: "circle", source: "showcases",
           paint: { "circle-radius": 14, "circle-color": "#ff5a36", "circle-opacity": 0.25 } },
         { id: "showcase-dot", type: "circle", source: "showcases",
@@ -99,12 +95,12 @@ export function flyToShowcase(map, showcase) {
   map.fitBounds([[w, s], [e, n]], { padding: 40, duration: 4500, essential: true });
 }
 
-// Place a NISAR frame image exactly on its bbox (below labels).
+// Place a NISAR frame image exactly on its bbox (below the showcase markers).
 export function setFrame(map, url, bbox) {
   const [w, s, e, n] = bbox;
   const coordinates = [[w, n], [e, n], [e, s], [w, s]];
   const src = map.getSource("frame");
   if (src) { src.updateImage({ url, coordinates }); return; }
   map.addSource("frame", { type: "image", url, coordinates });
-  map.addLayer({ id: "frame", type: "raster", source: "frame", paint: { "raster-fade-duration": 0 } }, "labels");
+  map.addLayer({ id: "frame", type: "raster", source: "frame", paint: { "raster-fade-duration": 0 } }, "showcase-halo");
 }
