@@ -47,7 +47,7 @@
     import { SHOWCASES } from "./js/config.js";
     import { initGlobe, flyToShowcase, setFrame, setPick } from "./js/map.js";
     import { loadBundle, seriesAt, valuesAt } from "./js/data.js";
-    import { explainPixel } from "./js/explain.js";
+    import { loadRules, interpret } from "./js/rules.js";
     import { showSeries } from "./js/chart.js";
     import { initTimeline } from "./js/timeline.js";
     import { initCompare, defaultPair } from "./js/compare.js";
@@ -55,6 +55,7 @@
 
     const $ = (id) => document.getElementById(id);
 
+    const rules = await loadRules().catch(() => null);
     let timeline = null, compare = null, currentIdx = 0, currentId = null;
 
     function toggleCompare() {
@@ -117,7 +118,7 @@
         const b = window.__bundle, box = $("explain");
         const now = b && valuesAt(b, e.lngLat.lng, e.lngLat.lat, currentIdx);
         const prev = b && currentIdx > 0 ? valuesAt(b, e.lngLat.lng, e.lngLat.lat, currentIdx - 1) : null;
-        const ex = now && explainPixel({
+        const ex = now && rules && interpret(rules, {
           hh: now.hh, hv: now.hv,
           dhv: prev && prev.hv != null && now.hv != null ? now.hv - prev.hv : null,
           prevDate: currentIdx > 0 ? b.manifest.dates[currentIdx - 1] : null,

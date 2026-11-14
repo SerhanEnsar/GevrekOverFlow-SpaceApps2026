@@ -15,7 +15,7 @@
     import { decodeDb, pixelOf, seriesAt } from "./js/data.js";
     import { labelFor, defaultDateIndex } from "./js/timeline.js";
     import { showSeries, NO_DATA_TEXT } from "./js/chart.js";
-    import { surfaceClass, explainPixel } from "./js/explain.js";
+    import { classify, interpret, gibsToDb, validateRules } from "./js/rules.js";
     import { validateStory } from "./js/story.js";
     import { SHOWCASES } from "./js/config.js";
 
@@ -76,20 +76,43 @@
       el.remove();
     });
 
-    // explain.js
-    test("water: very low HV", () => eq(surfaceClass(-15, -26), "water"));
-    test("built-up: bright HH, large HH-HV", () => eq(surfaceClass(-4, -16), "built"));
-    test("dense vegetation: high HV", () => eq(surfaceClass(-6, -11), "forest"));
-    test("shrubs: middle HV", () => eq(surfaceClass(-10, -16), "shrub"));
-    test("open ground: low HV, not water", () => eq(surfaceClass(-14, -21), "open"));
-    test("no data -> null", () => eq(explainPixel({ hh: null, hv: -10 }), null));
+    // rules.js (rule engine over web/rules.json)
+    const rules = await (await fetch("rules.json")).json();
+    results.push(["shipped rules.json is valid", validateRules(rules).length === 0, validateRules(rules).join("; ")]);
+    test("water: very low HV", () => eq(classify(rules, { hh: -15, hv: -26 }).id, "water"));
+    test("built-up: bright HH, large HH-HV", () => eq(classify(rules, { hh: -4, hv: -16 }).id, "built"));
+    test("dense vegetation: high HV", () => eq(classify(rules, { hh: -6, hv: -10 }).id, "forest"));
+    test("shrubs: middle HV", () => eq(classify(rules, { hh: -10, hv: -16 }).id, "shrub"));
+    test("open ground: low HV, not water", () => eq(classify(rules, { hh: -14, hv: -21 }).id, "open"));
+    test("built-up is not offered at ~500 m (global source)", () => eq(classify(rules, { hh: -4, hv: -16 }, "global").id, "shrub"));
+    test("value far from thresholds -> high confidence", () => eq(classify(rules, { hh: -6, hv: -8 }).confidence, "high"));
+    test("value near a threshold -> low confidence with the alternative", () => {
+      const c = classify(rules, { hh: -6, hv: -12.8 });
+      eq([c.id, c.confidence, c.alternatives], ["forest", "low", ["shrub"]]);
+    });
+    test("global source widens the uncertainty band", () =>
+      eq(classify(rules, { hh: -6, hv: -12.3 }, "global").confidence, "low"));
+    test("no data -> null", () => eq(interpret(rules, { hh: null, hv: -10 }), null));
     test("burn-like drop is explained", () => {
-      const e = explainPixel({ hh: -7, hv: -15.5, dhv: -4.2, prevDate: "2026-07-14" });
+      const e = interpret(rules, { hh: -7, hv: -15.5, dhv: -4.2, prevDate: "2026-07-14" });
       eq(/fell by 4\.2 dB/.test(e.plain), true);
+      eq(e.change.id, "loss"); eq(e.change.experimental, false);
       eq(e.expert, "HH −7.0 dB · HV −15.5 dB · HH−HV 8.5 dB · ΔHV −4.2 dB vs 2026-07-14");
     });
     test("small change is not mentioned", () =>
-      eq(/fell|rose/.test(explainPixel({ hh: -6, hv: -11, dhv: 0.8, prevDate: "2026-07-14" }).plain), false));
+      eq(interpret(rules, { hh: -6, hv: -11, dhv: 0.8, prevDate: "2026-07-14" }).change, null));
+    test("a 2.5 dB drop counts only for the global source, as experimental", () => {
+      eq(interpret(rules, { hh: -9, hv: -16, dhv: -2.5, prevDate: "x" }).change, null);
+      const g = interpret(rules, { hh: -9, hv: -16, dhv: -2.5, prevDate: "x" }, "global");
+      eq([g.change.id, g.change.experimental], ["loss", true]);
+    });
+    test("GIBS colour -> dB uses the fitted model", () => {
+      const d = gibsToDb(rules, 69, 144);
+      near(d.hv, -61.017 + 9.329 * Math.log(145) + 0.071 * Math.log(70), 1e-9);
+      near(d.hh, -50.065 + 7.047 * Math.log(145) + 1.436 * Math.log(70), 1e-9);
+    });
+    test("rules validation catches a missing fallback class", () =>
+      eq(validateRules({ ...rules, classes: rules.classes.slice(0, 2) }).length > 0, true));
 
     // story.js
     test("story validation catches unknown showcase and missing text", () => {

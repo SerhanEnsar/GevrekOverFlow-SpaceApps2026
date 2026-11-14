@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "about": "Transparent L-band interpretation rules. Thresholds describe typical NISAR L-band behaviour; they are not an official land-cover classification. Classes are tested top to bottom; the first match wins.",
+  "classes": [
+    {
+      "id": "water", "label": "Water or very smooth ground", "color": "#1d3557",
+      "when": { "hv_max": -24 },
+      "plain": "Calm water or very smooth ground: the radar wave bounces away like off a mirror, so almost nothing comes back."
+    },
+    {
+      "id": "built", "label": "Buildings or rocks", "color": "#f1faee",
+      "when": { "hh_minus_hv_min": 10, "hh_min": -8 }, "sources": ["showcase"],
+      "plain": "Buildings or rocks: walls and ground act like corner reflectors and send the wave straight back."
+    },
+    {
+      "id": "forest", "label": "Dense vegetation", "color": "#9ad94b",
+      "when": { "hv_min": -13 },
+      "plain": "Dense vegetation: leaves and branches scatter the wave in all directions, giving a strong HV signal."
+    },
+    {
+      "id": "shrub", "label": "Shrubs or sparse trees", "color": "#c9b84a",
+      "when": { "hv_min": -18 },
+      "plain": "Shrubs or sparse trees: some scattering inside the vegetation, weaker than a forest."
+    },
+    {
+      "id": "open", "label": "Open ground or fields", "color": "#7b5ea7",
+      "when": {},
+      "plain": "Open ground or fields: the wave mostly reflects off the surface; there is little vegetation volume."
+    }
+  ],
+  "change": [
+    {
+      "id": "loss", "label": "Vegetation loss", "when": { "dhv_max": "-threshold" },
+      "plain": "Since {prev} the vegetation signal fell by {abs} dB — consistent with burned or removed vegetation."
+    },
+    {
+      "id": "gain", "label": "Vegetation gain", "when": { "dhv_min": "threshold" },
+      "plain": "Since {prev} the vegetation signal rose by {abs} dB — growing plants or wetter ground."
+    }
+  ],
+  "sources": {
+    "showcase": {
+      "label": "Measured · 20 m pixels", "uncertainty_db": 0.5, "change_threshold_db": 3, "experimental_change": false
+    },
+    "global": {
+      "label": "Approximate · ~500 m, estimated from NASA GIBS imagery", "uncertainty_db": 1.0,
+      "change_threshold_db": 2, "experimental_change": true
+    }
+  },
+  "gibs_model": {
+    "about": "dB = a + b*ln(1+G) + c*ln(1+R) on GIBS 'NISAR_L2_Geocoded_Polarimetric_Covariance' tiles (zoom <= 8). Fitted on Spain 2026-07-26; checked on Spain 2026-10-18 (HV ±0.8 dB) and Muğla (HV ±1.0 dB).",
+    "hv": [-61.017, 9.329, 0.071],
+    "hh": [-50.065, 7.047, 1.436]
+  }
+}
