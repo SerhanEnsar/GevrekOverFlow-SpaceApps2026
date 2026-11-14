@@ -24,6 +24,7 @@
         <p>NISAR, a NASA–ISRO radar satellite, maps the planet day and night, through clouds and smoke.</p>
         <p class="legend"><span class="swatch passes"></span> Where NISAR imaged the land in the last 7 days</p>
         <p class="legend"><span class="swatch showcase"></span> Showcase — click to fly there</p>
+        <button id="story-btn" class="btn">▶ Tell me the story</button>
       </section>
       <section id="showcase" hidden>
         <h2 id="showcase-title"></h2>
@@ -39,6 +40,7 @@
       </section>
     </aside>
     <div id="explain" class="explain" hidden></div>
+    <div id="story" class="story" hidden></div>
   </main>
 
   <script type="module">
@@ -49,10 +51,11 @@
     import { showSeries } from "./js/chart.js";
     import { initTimeline } from "./js/timeline.js";
     import { initCompare, defaultPair } from "./js/compare.js";
+    import { initStory } from "./js/story.js";
 
     const $ = (id) => document.getElementById(id);
 
-    let timeline = null, compare = null, currentIdx = 0;
+    let timeline = null, compare = null, currentIdx = 0, currentId = null;
 
     function toggleCompare() {
       const b = window.__bundle; if (!b) return;
@@ -69,6 +72,8 @@
 
     async function openShowcase(s) {
       if (compare) toggleCompare();
+      if (s.id === currentId && window.__bundle) return;      // already open
+      currentId = s.id;
       flyToShowcase(map, s);
       $("intro").hidden = true;
       $("showcase").hidden = false;
@@ -124,6 +129,25 @@
       });
     });
     map.on("mouseout", () => { $("explain").hidden = true; });
+    // Guided story (G6)
+    $("story-btn").addEventListener("click", async () => {
+      const steps = await (await fetch("story.json")).json();
+      initStory($("story"), steps, {
+        goGlobe: () => {
+          if (compare) toggleCompare();
+          currentId = null; window.__bundle = null;
+          $("intro").hidden = false; $("showcase").hidden = true;
+          map.flyTo({ center: [10, 30], zoom: 1.6, duration: 3000 });
+        },
+        openShowcase: (id) => openShowcase(SHOWCASES.find((x) => x.id === id)),
+        setDate: (d) => { const k = window.__bundle?.manifest.dates.indexOf(d); if (k >= 0) timeline.set(k); },
+        setCompare: (on) => { if (on !== !!compare) toggleCompare(); },
+        showPoint: ([lng, lat]) => {
+          setPick(map, { lng, lat }); $("series-wrap").hidden = false; $("hint").hidden = true;
+          showSeries($("series"), seriesAt(window.__bundle, lng, lat, 60), window.__bundle.manifest);
+        },
+      });
+    });
     window.__map = map; // for manual inspection during development
   </script>
 </body>

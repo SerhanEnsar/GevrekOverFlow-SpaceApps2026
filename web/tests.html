@@ -16,6 +16,8 @@
     import { labelFor, defaultDateIndex } from "./js/timeline.js";
     import { showSeries, NO_DATA_TEXT } from "./js/chart.js";
     import { surfaceClass, explainPixel } from "./js/explain.js";
+    import { validateStory } from "./js/story.js";
+    import { SHOWCASES } from "./js/config.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -88,6 +90,14 @@
     });
     test("small change is not mentioned", () =>
       eq(/fell|rose/.test(explainPixel({ hh: -6, hv: -11, dhv: 0.8, prevDate: "2026-07-14" }).plain), false));
+
+    // story.js
+    test("story validation catches unknown showcase and missing text", () => {
+      const errs = validateStory([{ title: "a", text: "b", showcase: "mars" }, { title: "c", showcase: null }], SHOWCASES);
+      eq(errs.length, 2);
+    });
+    const storyErrs = validateStory(await (await fetch("story.json")).json(), SHOWCASES);
+    results.push(["shipped story.json is valid", storyErrs.length === 0, storyErrs.join("; ")]);
 
     const failed = results.filter((r) => !r[1]).length;
     document.getElementById("summary").textContent = `${results.length - failed}/${results.length} passed`;

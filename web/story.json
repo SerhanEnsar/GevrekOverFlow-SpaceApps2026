@@ -1,0 +1,7 @@
+[
+  { "title": "[DRAFT] Earth through radar eyes", "text": "[Draft text — to be written by the team after the Spain data is processed.]", "showcase": null },
+  { "title": "[DRAFT] Before the fire", "text": "[Draft]", "showcase": "spain", "date": "2026-07-14" },
+  { "title": "[DRAFT] After the fire", "text": "[Draft]", "showcase": "spain", "date": "2026-07-26", "compare": true },
+  { "title": "[DRAFT] Months later", "text": "[Draft]", "showcase": "spain", "date": "2026-10-18" },
+  { "title": "[DRAFT] Another fire, a different answer", "text": "[Draft]", "showcase": "mugla", "date": "2026-08-15", "compare": true }
+]
