@@ -55,9 +55,9 @@ export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
           paint: { "fill-color": "#ffd23f", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 1, 0.12, 5, 0.0] } },
         { id: "passes-line", type: "line", source: "passes", maxzoom: 9,
           paint: { "line-color": "#ffd23f", "line-width": 0.6, "line-opacity": 0.7 } },
-        { id: "showcase-halo", type: "circle", source: "showcases", maxzoom: 7,
+        { id: "showcase-halo", type: "circle", source: "showcases",
           paint: { "circle-radius": 14, "circle-color": "#ff5a36", "circle-opacity": 0.25 } },
-        { id: "showcase-dot", type: "circle", source: "showcases", maxzoom: 7,
+        { id: "showcase-dot", type: "circle", source: "showcases",
           paint: { "circle-radius": 6, "circle-color": "#ff5a36", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } },
       ],
     },
@@ -99,6 +99,13 @@ export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
     if (s && onShowcase) onShowcase(s);
   });
   return map;
+}
+
+// The open showcase hides its own marker (it would cover the radar image); every other marker
+// stays visible at every zoom so a showcase can always be picked, even after zooming in by hand.
+export function setOpenShowcase(map, id) {
+  const f = id ? ["!=", ["get", "id"], id] : null;
+  for (const l of ["showcase-halo", "showcase-dot"]) if (map.getLayer(l)) map.setFilter(l, f);
 }
 
 export function flyToShowcase(map, showcase) {

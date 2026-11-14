@@ -1,6 +1,6 @@
 // App wiring: globe, showcase panel, bottom time strip, method drawer, story.
 import { SHOWCASES } from "./config.js";
-import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus } from "./map.js";
+import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase } from "./map.js";
 import { loadManifest, loadTimeseries, seriesAt, valuesAt, seriesToCsv } from "./data.js";
 import { loadRules, interpret } from "./rules.js";
 import { initTimeline } from "./timeline.js";
@@ -75,6 +75,7 @@ async function openShowcase(s) {
   currentId = s.id;
   $("gcard").hidden = true; setFireFocus(map, null);
   flyToShowcase(map, s);
+  setOpenShowcase(map, s.id);
   $("intro").hidden = true; $("showcase").hidden = false; $("globe-btn").hidden = false;
   $("showcase-title").textContent = s.label;
   $("showcase-sub").textContent = s.subtitle;
@@ -114,6 +115,7 @@ function goGlobe(fly = true) {
   timeline?.stop?.();
   currentId = null; window.__bundle = null;
   setFrameVisible(map, false);
+  setOpenShowcase(map, null);
   $("intro").hidden = false; $("showcase").hidden = true; $("globe-btn").hidden = true;
   $("timeline").innerHTML = '<span class="muted">Pick a showcase on the globe to travel through its radar dates.</span>';
   if (fly) map.flyTo({ center: [10, 30], zoom: 1.6, duration: 3000 });
@@ -308,7 +310,14 @@ async function openMethod() {
 function closeMethod() { $("method").hidden = true; $("method-btn").setAttribute("aria-expanded", "false"); }
 $("method-btn").addEventListener("click", () => ($("method").hidden ? openMethod() : closeMethod()));
 $("method-close").addEventListener("click", closeMethod);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMethod(); });
+// Escape closes the top-most thing: drawer → comparison → card → showcase (back to the globe).
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || e.target.closest?.("input, select, textarea")) return;
+  if (!$("method").hidden) return closeMethod();
+  if (compare) return toggleCompare();
+  if (!$("gcard").hidden) { $("gcard").querySelector(".gc-close")?.click(); return; }
+  if (bundle() || currentId) return goGlobe();
+});
 $("summary").addEventListener("click", (e) => {
   if (e.target.closest("[data-open-method]")) { e.preventDefault(); openMethod(); }
 });
