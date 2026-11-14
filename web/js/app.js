@@ -11,8 +11,10 @@ import { initStory } from "./story.js";
 import { renderMethod, summaryHtml, legendHtml } from "./method.js";
 import { tileTemplate, readPixel } from "./gibs.js";
 import { gibsToDb } from "./rules.js";
-import { hasPassAfter, imagedAfterLocal } from "./cmr.js";
-import { loadFires, inRange } from "./fires.js";
+import { hasPassAfter, imagedAfterLocal, inRing } from "./cmr.js";
+import { inRange } from "./fires.js";
+import { loadFiresLive, loadPassesLive, hhOnlyDatesAt, EONET_DAYS } from "./live.js";
+import { initCover } from "./cover.js";
 import { openGlobalCard } from "./globalcard.js";
 
 const $ = (id) => document.getElementById(id);
@@ -24,6 +26,19 @@ export function toast(msg) {
   t.textContent = msg; t.hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 6000);
 }
+
+// ---- cover: live NASA data first, then the globe -------------------------------
+const cover = initCover($("cover"), [
+  { id: "fires", label: `Wildfires of the last ${EONET_DAYS} days · NASA EONET`, weight: 5 },
+  { id: "passes", label: "NISAR scenes of the last 12 days · NASA CMR", weight: 3 },
+  { id: "orbit", label: "NISAR's orbit · public TLE (visualization only)", weight: 1 },
+  { id: "globe", label: "Globe and NISAR imagery · NASA GIBS", weight: 2 },
+]);
+const firesP = loadFiresLive((f, note) => cover.update("fires", f, note));
+const passesP = loadPassesLive((f, note) => cover.update("passes", f, note));
+const tleP = loadTle().then((t) => { cover.update("orbit", 1, t ? (t.source === "live" ? (t.date ?? "").slice(0, 10) : "saved copy") : "unavailable", t?.source === "snapshot" ? "saved" : null); return t; });
+firesP.then((r) => cover.update("fires", 1, r.source === "live" ? `${r.rows.length.toLocaleString("en")} fires` : "saved copy", r.source));
+passesP.then((r) => cover.update("passes", 1, r.source === "live" ? `${r.fc.features.length.toLocaleString("en")} scenes` : "saved copy", r.source));
 
 const rules = await loadRules().catch(() => { toast("Interpretation rules could not be loaded."); return null; });
 
@@ -191,7 +206,9 @@ function hoverGlobal(e) {
   box.hidden = true;
   if (!rules || !nisarDates.length || map.getZoom() < 5 || compare) return;
   hoverTimer = setTimeout(async () => {
+    const hhOnly = hhOnlyDatesAt(passesFc, inRing, e.lngLat.lng, e.lngLat.lat);
     for (const d of nisarDates) {
+      if (hhOnly.has(d)) continue;                       // single-pol HH: no vegetation signal
       const px = await readPixel(e.lngLat.lng, e.lngLat.lat, d);
       if (token !== hoverToken) return;
       if (!px) continue;
@@ -235,13 +252,15 @@ let nisarDates = [];
 let passesFc = null;
 let mapReady = false;
 map.once("load", () => { mapReady = true; if (allFires.length) refreshFires(); });
-map.once("load", async () => {
-  try {
-    const fc = await fetch("data/global/passes.geojson").then((r) => r.json());
-    passesFc = fc;
-    nisarDates = [...new Set(fc.features.map((f) => f.properties.date))].sort().reverse().slice(0, 12);
-    addNisarDays(map, nisarDates, tileTemplate);
-  } catch { /* the globe works without the imagery */ }
+const mapLoaded = new Promise((r) => map.once("load", r));
+mapLoaded.then(() => cover.update("globe", 0.5, "styles"));
+Promise.all([mapLoaded, passesP]).then(([, { fc }]) => {
+  passesFc = fc;
+  map.getSource("passes")?.setData(fc);
+  nisarDates = [...new Set(fc.features.map((f) => f.properties.date))].sort().reverse().slice(0, 12);
+  addNisarDays(map, nisarDates, tileTemplate);
+  // The globe spins, so "idle" may never come: give the first imagery tiles a moment, never block on them.
+  setTimeout(() => cover.update("globe", 1, `${nisarDates.length} days of imagery`), 1500);
 });
 
 // ---- fires: time range, markers, "latest fire" and stepping -------------------------
@@ -297,7 +316,7 @@ $("fire-latest").addEventListener("click", () => { fireIdx = -1; stepFire(+1); }
 $("fire-older").addEventListener("click", () => stepFire(+1));
 $("fire-newer").addEventListener("click", () => stepFire(-1));
 
-loadFires().then((rows) => {
+firesP.then(({ rows }) => {
   allFires = rows;
   refreshFires();
   if (!rows.length) $("fire-count").textContent = "Fire data could not be loaded.";
@@ -312,7 +331,7 @@ const satView = createSatView(map, {
   close: $("satbar-close"), fade: $("fade"), scan: $("scan"),
 });
 async function startSatellite() {
-  const tle = await loadTle();
+  const tle = await tleP;
   if (!tle) { $("sat-btn").hidden = true; return; }
   const at = await makePropagator(tle).catch(() => null);
   if (!at) { $("sat-btn").hidden = true; return; }
@@ -371,6 +390,11 @@ $("summary").addEventListener("click", (e) => {
   if (e.target.closest("[data-open-method]")) { e.preventDefault(); openMethod(); }
 });
 
+// The cover leaves once every source has answered (live or saved copy).
+const coverDone = Promise.all([firesP, passesP, tleP, new Promise((r) => {
+  const t = setInterval(() => { if ($("cover").querySelector('[data-id="globe"].ok')) { clearInterval(t); r(); } }, 150);
+})]).then(() => cover.done());
+
 // ---- guided story (starts by itself on the first visit) ------------------------
 async function startStory() {
   const steps = await fetch("story.json").then((r) => r.json()).catch(() => null);
@@ -387,7 +411,7 @@ $("story-btn").addEventListener("click", startStory);
 try {
   if (!localStorage.getItem("nisar-story-seen")) {
     localStorage.setItem("nisar-story-seen", "1");
-    map.once("load", startStory);
+    coverDone.then(startStory);
   }
 } catch { /* storage blocked: no auto-start */ }
 

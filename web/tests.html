@@ -23,6 +23,7 @@
     import { parseLive, mergeFires, inRange, nearby, distanceKm } from "./js/fires.js";
     import { destination, bearing, groundRange, beamFeatures, swathPolygon } from "./js/orbit.js";
     import { lodHidden, swathCentre } from "./js/satview.js";
+    import { passFeatures, hhOnlyDatesAt } from "./js/live.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -228,6 +229,15 @@
       eq([hasHV("SH"), hasHV("DH"), hasHV(null)], [false, true, true]);
       const p = parsePasses([[{ time_start: "2026-10-17T16:42:59Z", title: "NISAR_L2_PR_GCOV_033_079_D_089_2005_SHSH_A_x" }]]);
       eq(p[0].hv, false);
+    });
+
+    test("live passes: GraphQL items become footprints with polarization; overlaps before start dropped", () => {
+      const it = (d, mode) => ({ granuleUr: `NISAR_L2_PR_GCOV_034_079_D_089_2005_${mode}_A_x`, timeStart: d + "T16:43:00Z",
+        polygons: [["0 0 0 1 1 1 1 0 0 0"]] });
+      const f = passFeatures([it("2026-11-01", "DHDH"), it("2026-10-30", "DHDH"), it("2026-11-05", "SHSH"), it("2026-11-01", "DHDH")], "2026-10-31");
+      eq(f.map((x) => [x.properties.date, x.properties.hv]), [["2026-11-01", true], ["2026-11-05", false]]);
+      eq(f[0].geometry.coordinates[0][1], [1, 0]);                     // "lat lon" pairs became [lon, lat]
+      eq([...hhOnlyDatesAt({ features: f }, inRing, 0.5, 0.5)], ["2026-11-05"]);
     });
 
     // story.js

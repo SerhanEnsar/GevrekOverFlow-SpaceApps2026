@@ -35,7 +35,7 @@ export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
         },
         // Note: GIBS Reference_Labels_15m is not used — its tiles render as opaque black
         // in MapLibre and hide every layer below them.
-        passes: { type: "geojson", data: "data/global/passes.geojson", attribution: "NISAR footprints: NASA CMR" },
+        passes: { type: "geojson", data: { type: "FeatureCollection", features: [] }, attribution: "NISAR footprints: NASA CMR" },
         showcases: {
           type: "geojson",
           data: {
