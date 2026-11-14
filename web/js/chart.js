@@ -27,13 +27,17 @@ export function showSeries(el, series, manifest) {
 
   el.innerHTML = '<canvas height="190"></canvas>';
   const fmt = (v) => (v == null ? null : Math.round(v * 10) / 10);
+  // Dates from another orbit: HV only (HH is not comparable across orbits), hollow points.
+  const other = series.dates.map((d) => (manifest.date_geometry?.[d] ?? manifest.geometry) !== manifest.geometry);
   const chart = new Chart(el.querySelector("canvas"), {
     type: "line",
     data: {
       labels: series.dates.map((d) => d.slice(5)),
       datasets: [
-        { label: "HV (vegetation volume)", data: series.hv.map(fmt), borderColor: "#7fd18b", backgroundColor: "#7fd18b", tension: 0.25, spanGaps: false },
-        { label: "HH (surface & structure)", data: series.hh.map(fmt), borderColor: "#e3a34f", backgroundColor: "#e3a34f", tension: 0.25, spanGaps: false },
+        { label: "HV (vegetation volume)", data: series.hv.map(fmt), borderColor: "#7fd18b", backgroundColor: "#7fd18b",
+          pointBackgroundColor: other.map((o) => (o ? "transparent" : "#7fd18b")), pointRadius: 4,
+          segment: { borderDash: (c) => (other[c.p0DataIndex] || other[c.p1DataIndex] ? [4, 4] : undefined) }, tension: 0.25, spanGaps: false },
+        { label: "HH (surface & structure)", data: series.hh.map((v, i) => (other[i] ? null : fmt(v))), borderColor: "#e3a34f", backgroundColor: "#e3a34f", tension: 0.25, spanGaps: false },
       ],
     },
     options: {
@@ -41,7 +45,10 @@ export function showSeries(el, series, manifest) {
       plugins: {
         legend: { labels: { color: "#c9d3da", boxWidth: 12 } },
         eventLine: { index: series.dates.findIndex((d) => d >= manifest.event_date) },
-        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y} dB` } },
+        tooltip: { callbacks: {
+          label: (c) => `${c.dataset.label}: ${c.parsed.y} dB`,
+          footer: (items) => (items.length && other[items[0].dataIndex] ? "Other orbit — only HV comparable" : ""),
+        } },
       },
       scales: {
         x: { ticks: { color: "#93a1ab" }, grid: { color: "#1d2731" } },

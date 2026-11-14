@@ -8,7 +8,7 @@ export const gibs = (layer, time, tms, ext) =>
 
 const center = ([w, s, e, n]) => [(w + e) / 2, (s + n) / 2];
 
-export function initGlobe(container, showcases, { onShowcase } = {}) {
+export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
   const map = new maplibregl.Map({
     container,
     center: [30, 25],
@@ -18,6 +18,10 @@ export function initGlobe(container, showcases, { onShowcase } = {}) {
     style: {
       version: 8,
       projection: { type: "globe" },
+      sky: {
+        "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 5, 1, 7, 0],
+        "sky-color": "#0b1d35", "horizon-color": "#3d6ea8", "fog-color": "#0b1d35",
+      },
       sources: {
         bluemarble: {
           type: "raster", tileSize: 256, maxzoom: 8,
@@ -51,12 +55,18 @@ export function initGlobe(container, showcases, { onShowcase } = {}) {
           paint: { "fill-color": "#ffd23f", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 1, 0.18, 8, 0.04] } },
         { id: "passes-line", type: "line", source: "passes", maxzoom: 9,
           paint: { "line-color": "#ffd23f", "line-width": 0.6, "line-opacity": 0.7 } },
-        { id: "showcase-halo", type: "circle", source: "showcases",
+        { id: "showcase-halo", type: "circle", source: "showcases", maxzoom: 7,
           paint: { "circle-radius": 14, "circle-color": "#ff5a36", "circle-opacity": 0.25 } },
-        { id: "showcase-dot", type: "circle", source: "showcases",
+        { id: "showcase-dot", type: "circle", source: "showcases", maxzoom: 7,
           paint: { "circle-radius": 6, "circle-color": "#ff5a36", "circle-stroke-color": "#fff", "circle-stroke-width": 2 } },
       ],
     },
+  });
+
+  // Tile or network failures must not end up as console errors or break the page: tell the user once.
+  let warned = false;
+  map.on("error", (e) => {
+    if (!warned && onError) { warned = true; onError(e); }
   });
 
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
@@ -96,13 +106,29 @@ export function flyToShowcase(map, showcase) {
 }
 
 // Place a NISAR frame image exactly on its bbox (below the showcase markers).
+// Rapid calls (timeline playback, layer switches) can finish out of order inside MapLibre, so
+// each image is decoded first and only the most recent request reaches the map.
+let frameToken = 0;
 export function setFrame(map, url, bbox) {
+  const token = ++frameToken;
   const [w, s, e, n] = bbox;
   const coordinates = [[w, n], [e, n], [e, s], [w, s]];
-  const src = map.getSource("frame");
-  if (src) { src.updateImage({ url, coordinates }); return; }
-  map.addSource("frame", { type: "image", url, coordinates });
-  map.addLayer({ id: "frame", type: "raster", source: "frame", paint: { "raster-fade-duration": 0 } }, "showcase-halo");
+  const img = new Image();
+  img.src = url;
+  return img.decode().catch(() => {}).then(() => {
+    if (token !== frameToken) return false;              // a newer frame was requested meanwhile
+    const src = map.getSource("frame");
+    if (src) src.updateImage({ url, coordinates });
+    else {
+      map.addSource("frame", { type: "image", url, coordinates });
+      map.addLayer({ id: "frame", type: "raster", source: "frame", paint: { "raster-fade-duration": 0 } }, "showcase-halo");
+    }
+    return true;
+  });
+}
+
+export function setFrameVisible(map, visible) {
+  if (map.getLayer("frame")) map.setLayoutProperty("frame", "visibility", visible ? "visible" : "none");
 }
 
 // Marker for the place whose time series is shown.

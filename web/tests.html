@@ -12,8 +12,8 @@
   <div id="summary">running…</div>
   <ul id="results"></ul>
   <script type="module">
-    import { decodeDb, pixelOf, seriesAt } from "./js/data.js";
-    import { labelFor, defaultDateIndex } from "./js/timeline.js";
+    import { decodeDb, pixelOf, seriesAt, seriesToCsv } from "./js/data.js";
+    import { labelFor, defaultDateIndex, timePositions } from "./js/timeline.js";
     import { showSeries, NO_DATA_TEXT } from "./js/chart.js";
     import { classify, interpret, gibsToDb, validateRules } from "./js/rules.js";
     import { validateStory } from "./js/story.js";
@@ -61,6 +61,17 @@
     test("default date falls back to 0 when nothing precedes the event", () =>
       eq(defaultDateIndex(["2026-08-15"], "2026-07-28"), 0));
 
+    test("dates sit on a real time axis", () => {
+      const p = timePositions(["2026-01-01", "2026-01-11", "2026-01-21"]);
+      near(p[0], 0); near(p[1], 0.5); near(p[2], 1);
+    });
+    test("CSV has a header and one row per date, empty for no data", () => {
+      const csv = seriesToCsv({ dates: ["2026-01-20", "2026-07-14"], hh: [null, -9.5], hv: [-15.04, -14.79] },
+        { label: "X", geometry: "095D068", date_geometry: { "2026-01-20": "159A022" } }, -3.0374, 41.1161);
+      const lines = csv.trim().split("\n");
+      eq(lines.slice(2), ["date,orbit,hh_db,hv_db", "2026-01-20,159A022,,-15.04", "2026-07-14,095D068,-9.50,-14.79"]);
+    });
+
     // chart.js
     test("clicking outside the data shows 'No radar data here'", () => {
       const el = document.createElement("div");
@@ -73,6 +84,14 @@
       document.body.appendChild(el);
       showSeries(el, seriesAt(bundle, 29.05, 36.15), { ...manifest, event_date: "2026-08-01" });
       eq(!!el.querySelector("canvas"), true);
+      el.remove();
+    });
+
+    test("other-orbit dates show HV only", () => {
+      const el = document.createElement("div"); document.body.appendChild(el);
+      const ch = showSeries(el, { dates: ["2026-01-20", "2026-07-14"], hh: [-6, -9], hv: [-15, -14] },
+        { event_date: "2026-07-17", geometry: "A", date_geometry: { "2026-01-20": "B" } });
+      eq(ch.data.datasets[1].data, [null, -9]); eq(ch.data.datasets[0].data, [-15, -14]);
       el.remove();
     });
 

@@ -40,3 +40,13 @@ def test_write_passes_writes_feature_collection(tmp_path):
     fc = json.loads(out.read_text())
     assert fc["type"] == "FeatureCollection"
     assert [f["properties"]["date"] for f in fc["features"]] == ["2026-11-10", "2026-11-11"]
+
+
+def test_clean_drops_old_duplicates_and_rounds():
+    from passes import clean_features
+    sq = lambda d, x: {"type": "Feature", "properties": {"date": d},
+                       "geometry": {"type": "Polygon", "coordinates": [[[x, 0.123456], [x + 1, 0], [x + 1, 1], [x, 0.123456]]]}}
+    out = clean_features([sq("2026-08-13", 10), sq("2026-11-10", 20), sq("2026-11-12", 20), sq("2026-11-11", 30.98765)],
+                         start="2026-11-02")
+    assert [f["properties"]["date"] for f in out] == ["2026-11-11", "2026-11-12"]      # old one dropped, duplicate keeps latest
+    assert out[0]["geometry"]["coordinates"][0][0] == [30.988, 0.123]

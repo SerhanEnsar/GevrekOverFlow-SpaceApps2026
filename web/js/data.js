@@ -70,3 +70,17 @@ export function valuesAt(bundle, lon, lat, t) {
     hv: decodeDb(ts[(t * 2 + 1) * plane + i], m.db_scale),
   };
 }
+
+/** CSV text of a time series (for the "Download CSV" button). */
+export function seriesToCsv(series, manifest, lon, lat) {
+  const rows = [
+    `# NISAR L2 GCOV backscatter, mean of ~60 m around ${lon.toFixed(5)}, ${lat.toFixed(5)} (WGS84)`,
+    `# region: ${manifest.label ?? manifest.region}; dB = 10*log10(gamma0); empty = no data`,
+    "date,orbit,hh_db,hv_db",
+  ];
+  series.dates.forEach((d, i) => {
+    const f = (v) => (v == null ? "" : v.toFixed(2));
+    rows.push([d, manifest.date_geometry?.[d] ?? manifest.geometry ?? "", f(series.hh[i]), f(series.hv[i])].join(","));
+  });
+  return rows.join("\n") + "\n";
+}

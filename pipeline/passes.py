@@ -5,7 +5,7 @@ from the NASA CMR catalogue (no login needed). The browser loads this file
 instead of the multi-megabyte CMR response.
 
 Usage:
-  python pipeline/passes.py --days 7 --out web/data/global/passes.geojson
+  python pipeline/passes.py --days 12 --out web/data/global/passes.geojson
 """
 import argparse
 import datetime as dt
@@ -50,6 +50,22 @@ def footprints_from_cmr(entries: list[dict], max_points: int = 12) -> list[dict]
     return features
 
 
+def clean_features(features: list[dict], start: str) -> list[dict]:
+    """Drop granules that started before `start` (CMR returns anything overlapping the window),
+    keep one feature per footprint (the latest date) and round coordinates to 3 decimals (~100 m)."""
+    by_geom: dict[str, dict] = {}
+    for f in features:
+        if f["properties"]["date"] < start:
+            continue
+        ring = [[round(x, 3), round(y, 3)] for x, y in f["geometry"]["coordinates"][0]]
+        g = {"type": "Feature", "properties": dict(f["properties"]),
+             "geometry": {"type": "Polygon", "coordinates": [ring]}}
+        key = json.dumps(ring)
+        if key not in by_geom or by_geom[key]["properties"]["date"] < g["properties"]["date"]:
+            by_geom[key] = g
+    return sorted(by_geom.values(), key=lambda f: f["properties"]["date"])
+
+
 def write_passes(features: list[dict], out: Path) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
     fc = {"type": "FeatureCollection", "features": sorted(features, key=lambda f: f["properties"]["date"])}
@@ -78,11 +94,13 @@ def fetch_entries(days: int, end: dt.date) -> list[dict]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--days", type=int, default=7)
+    ap.add_argument("--days", type=int, default=12)   # one full NISAR repeat cycle
     ap.add_argument("--end", type=dt.date.fromisoformat, default=dt.date.today())
     ap.add_argument("--out", type=Path, default=Path(__file__).resolve().parent.parent / "web/data/global/passes.geojson")
     args = ap.parse_args()
-    out = write_passes(footprints_from_cmr(fetch_entries(args.days, args.end)), args.out)
+    start = str(args.end - dt.timedelta(days=args.days))
+    features = clean_features(footprints_from_cmr(fetch_entries(args.days, args.end)), start)
+    out = write_passes(features, args.out)
     print(f"{out} ({out.stat().st_size // 1024} KB)")
 
 
