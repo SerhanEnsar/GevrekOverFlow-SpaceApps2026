@@ -45,3 +45,13 @@ body { display: flex; flex-direction: column; }
 .tl-note { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
 .panel h3 { font-size: 14px; color: var(--muted); font-weight: 600; margin: 16px 0 6px; }
 #series { min-height: 40px; color: var(--muted); }
+
+/* Before / after swipe */
+.btn { margin-top: 10px; background: #1d2731; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.btn:hover { border-color: var(--showcase); }
+.cmp-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.cmp-handle { position: absolute; top: 0; bottom: 0; width: 0; z-index: 3; border-left: 2px solid #fff; cursor: ew-resize; touch-action: none; }
+.cmp-grip { position: absolute; top: 50%; left: -16px; width: 30px; height: 30px; margin-top: -15px; border-radius: 50%; background: #fff; color: #111; display: grid; place-items: center; font-weight: 700; pointer-events: auto; }
+.cmp-tag { position: absolute; top: 12px; white-space: nowrap; background: rgba(12,17,23,.85); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 12px; }
+.cmp-tag.left { right: 14px; } .cmp-tag.right { left: 14px; }
+.panel { z-index: 4; }

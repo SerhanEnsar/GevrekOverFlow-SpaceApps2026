@@ -29,6 +29,7 @@
         <h2 id="showcase-title"></h2>
         <p id="showcase-sub" class="muted"></p>
         <div id="timeline"></div>
+        <button id="compare-btn" class="btn" hidden>Compare before / after</button>
         <div id="series-wrap" hidden>
           <h3>How this place changed</h3>
           <div id="series"></div>
@@ -45,10 +46,27 @@
     import { loadBundle, seriesAt } from "./js/data.js";
     import { showSeries } from "./js/chart.js";
     import { initTimeline } from "./js/timeline.js";
+    import { initCompare, defaultPair } from "./js/compare.js";
 
     const $ = (id) => document.getElementById(id);
 
+    let timeline = null, compare = null;
+
+    function toggleCompare() {
+      const b = window.__bundle; if (!b) return;
+      if (compare) { compare.destroy(); compare = null; $("compare-btn").textContent = "Compare before / after"; return; }
+      const m = b.manifest, [i, j] = defaultPair(m.dates, m.event_date);
+      timeline.set(i);                                    // main map shows "before"
+      compare = initCompare(map, {
+        afterUrl: `data/${m.region}/${m.frames[m.dates[j]]}`, bbox: m.bbox,
+        beforeLabel: `Before · ${m.dates[i]}`, afterLabel: `After · ${m.dates[j]}`,
+      });
+      $("compare-btn").textContent = "Close comparison";
+    }
+    $("compare-btn").addEventListener("click", toggleCompare);
+
     async function openShowcase(s) {
+      if (compare) toggleCompare();
       flyToShowcase(map, s);
       $("intro").hidden = true;
       $("showcase").hidden = false;
@@ -56,6 +74,7 @@
       $("showcase-sub").textContent = s.subtitle;
       $("timeline").innerHTML = "";
       $("series-wrap").hidden = true;
+      $("compare-btn").hidden = true;
       $("hint").hidden = true;
       window.__bundle = null;
       $("status").textContent = "Loading radar data…";
@@ -64,8 +83,9 @@
         window.__bundle = bundle;
         $("status").textContent = "";
         $("hint").hidden = false;
-        initTimeline($("timeline"), bundle.manifest, `data/${s.id}`,
+        timeline = initTimeline($("timeline"), bundle.manifest, `data/${s.id}`,
           (date, url) => setFrame(map, url, bundle.manifest.bbox));
+        $("compare-btn").hidden = false;
       } catch (e) {
         $("status").textContent = "Radar data for this showcase is still being prepared.";
       }
