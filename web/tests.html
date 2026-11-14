@@ -18,6 +18,9 @@
     import { classify, interpret, gibsToDb, validateRules } from "./js/rules.js";
     import { validateStory } from "./js/story.js";
     import { SHOWCASES } from "./js/config.js";
+    import { geometryKey, parsePasses } from "./js/cmr.js";
+    import { tileXY } from "./js/gibs.js";
+    import { parseLive, mergeFires, inRange, nearby, distanceKm } from "./js/fires.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -135,6 +138,39 @@
     });
     test("rules validation catches a missing fallback class", () =>
       eq(validateRules({ ...rules, classes: rules.classes.slice(0, 2) }).length > 0, true));
+
+    // cmr.js
+    test("geometry key from a GCOV granule name", () =>
+      eq(geometryKey("NISAR_L2_PR_GCOV_026_095_D_068_2005_DHDH_A_20260726T190924_2"), "095D068"));
+    test("passes: unique per date+orbit, newest first", () => {
+      const e = (t, d) => ({ title: `NISAR_L2_PR_GCOV_026_${t}_2005`, time_start: d + "T19:09:24Z" });
+      eq(parsePasses([[e("095_D_068", "2026-07-14"), e("159_A_022", "2026-07-19")], [e("095_D_068", "2026-07-14")]]),
+        [{ date: "2026-07-19", geometry: "159A022" }, { date: "2026-07-14", geometry: "095D068" }]);
+    });
+
+    // gibs.js
+    test("tile and pixel of a lon/lat at zoom 8", () => {
+      eq(tileXY(-3.0374, 41.1161, 8), { x: 125, y: 95, px: 215, py: 223 });
+      eq(tileXY(0, 0, 0), { x: 0, y: 0, px: 128, py: 128 });
+    });
+
+    // fires.js
+    test("live EONET events become compact rows (acres -> ha, latest point)", () => {
+      const rows = parseLive({ events: [{ id: "E1", title: "T", geometry: [
+        { date: "2026-11-01T00:00:00Z", type: "Point", coordinates: [1, 2] },
+        { date: "2026-11-03T05:00:00Z", type: "Point", coordinates: [1.123456, 2], magnitudeValue: 1000, magnitudeUnit: "acres" }] }] });
+      eq(rows, [["E1", "T", "2026-11-03", 1.1235, 2, 405]]);
+    });
+    test("merge prefers live rows and sorts newest first", () => {
+      const m = mergeFires([["A", "old", "2026-10-01", 0, 0, 1], ["B", "b", "2026-11-01", 0, 0, 1]], [["A", "new", "2026-11-05", 0, 0, 2]]);
+      eq(m.map((r) => r[0] + r[1]), ["Anew", "Bb"]);
+    });
+    test("range filter keeps the last N days", () =>
+      eq(inRange([["A", "", "2026-11-10"], ["B", "", "2026-10-01"]], 7, "2026-11-14").map((r) => r[0]), ["A"]));
+    test("distance and nearby fires", () => {
+      near(distanceKm(0, 0, 0, 1), 111.19, 0.05);
+      eq(nearby([["A", "", "2026-01-01", 0, 0.3], ["B", "", "2026-02-01", 0, 0.1], ["C", "", "2026-03-01", 3, 3]], 0, 0, 50).map((r) => r[0]), ["B", "A"]);
+    });
 
     // story.js
     test("story validation catches unknown showcase and missing text", () => {
