@@ -86,15 +86,22 @@ def subset_file(path: Path, bbox, out_dir: Path) -> list[Path]:
         transform = from_origin(x[xs][0] - dx / 2, y[ys][0] - dy / 2, dx, abs(dy)) if dy < 0 else None
         if transform is None:
             raise RuntimeError("Unexpected ascending y coordinates; run --inspect")
+        # GCOV mask: 0 = partially focused / invalid sample, 255 = outside the acquisition.
+        invalid = None
+        if "mask" in g:
+            m = g["mask"][ys, xs]
+            invalid = (m == 0) | (m == 255)
         for pol in POLS:
             if pol not in g:
                 continue
             arr = to_db(g[pol][ys, xs])
+            if invalid is not None:
+                arr[invalid] = np.nan
             out = out_dir / f"{date}_{pol[:2]}.tif"
             with rasterio.open(
                 out, "w", driver="GTiff", height=arr.shape[0], width=arr.shape[1], count=1,
                 dtype="float32", crs=f"EPSG:{epsg}", transform=transform, nodata=np.nan,
-                tiled=True, blockxsize=256, blockysize=256, compress="deflate",
+                compress="deflate",
             ) as dst:
                 dst.write(arr, 1)
             written.append(out)

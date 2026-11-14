@@ -13,6 +13,7 @@
   <ul id="results"></ul>
   <script type="module">
     import { decodeDb, pixelOf, seriesAt } from "./js/data.js";
+    import { labelFor, defaultDateIndex } from "./js/timeline.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -47,6 +48,14 @@
       const s = seriesAt(bundle, 29.1, 36.1, 20000);
       near(s.hh[0], -15);   // all valid pixels have v=100
     });
+
+    // timeline.js
+    test("labelFor before the event", () => eq(labelFor("2026-07-22", "2026-07-28"), "2026-07-22 · before fire"));
+    test("labelFor on/after the event", () => eq(labelFor("2026-08-15", "2026-07-28"), "2026-08-15 · after fire"));
+    test("default date is the last one before the event", () =>
+      eq(defaultDateIndex(["2026-06-28", "2026-07-10", "2026-07-22", "2026-08-15"], "2026-07-28"), 2));
+    test("default date falls back to 0 when nothing precedes the event", () =>
+      eq(defaultDateIndex(["2026-08-15"], "2026-07-28"), 0));
 
     const failed = results.filter((r) => !r[1]).length;
     document.getElementById("summary").textContent = `${results.length - failed}/${results.length} passed`;
