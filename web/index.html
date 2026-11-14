@@ -49,6 +49,7 @@
         <p class="legend"><span class="swatch passes"></span> Where NISAR imaged the land in the last 12 days</p>
         <p class="legend"><span class="swatch showcase"></span> Showcase — click to fly there</p>
         <p class="legend"><span class="swatch fire"></span> Wildfire reported to NASA EONET</p>
+        <p class="legend"><span class="swatch hot"></span> Active fire detected in the last 24 h (NASA FIRMS)</p>
         <p class="legend"><span class="swatch sat"></span> NISAR now: radar beam and the strip it just imaged (approximate)</p>
         <p class="muted small">Zoom in anywhere and click: we read NISAR's image of that place and explain it.</p>
       </section>
@@ -91,6 +92,10 @@
     <div id="explain" class="explain" hidden></div>
     <div id="story" class="story" hidden></div>
     <div id="sat-chip" class="sat-chip" hidden></div>
+    <div id="photo-ctl" class="photo-ctl" hidden>
+      <button id="photo-btn" class="btn small" aria-pressed="false" title="Satellite photo of one day (VIIRS NOAA-20, 250 m; clouds possible)">📷 Satellite photo</button>
+      <span id="photo-days" hidden><button id="photo-prev" class="btn small" title="Day before (find a clear day)">◀</button><span id="photo-date"></span><button id="photo-next" class="btn small" title="Day after">▶</button></span>
+    </div>
     <div id="fade" class="fade" aria-hidden="true"></div>
     <div id="scan" class="scan" aria-hidden="true"></div>
     <div id="satbar" class="satbar" hidden role="status">
@@ -123,6 +128,7 @@
           <button id="fire-newer" class="btn small" title="Newer fire">▶</button>
         </div>
         <label class="chk"><input id="fire-nisar" type="checkbox" /> only where NISAR imaged afterwards</label>
+        <label class="chk" title="Active fire detections of the last 24 hours, NASA FIRMS (VIIRS NOAA-20, 375 m)"><input id="hotspots" type="checkbox" checked /> <span class="swatch hot"></span> live hotspots (24 h)</label>
         <span id="fire-current" class="fire-current"></span>
       </div>
     </div>

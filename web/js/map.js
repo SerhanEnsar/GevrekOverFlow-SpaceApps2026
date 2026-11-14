@@ -50,7 +50,7 @@ export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
       layers: [
         { id: "bluemarble", type: "raster", source: "bluemarble" },
         { id: "relief", type: "raster", source: "relief", minzoom: 7,
-          paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 7, 0, 8.5, 0.85] } },
+          paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 7, 0, 8.5, 0.28] } },   // terrain texture only: keep Blue Marble's colours
         { id: "passes-fill", type: "fill", source: "passes", maxzoom: 9,
           paint: { "fill-color": "#ffd23f", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 1, 0.12, 5, 0.0] } },
         { id: "passes-line", type: "line", source: "passes", maxzoom: 9,
@@ -67,11 +67,15 @@ export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
   let warned = false;
   map.on("error", (e) => {
     // Daily NISAR imagery is often missing for a day or two at GIBS: that is expected, not an error.
-    if (e.sourceId?.startsWith("nisar-")) return;
+    if (/^(nisar-|firms-|optical)/.test(e.sourceId ?? "")) return;
     if (!warned && onError) { warned = true; onError(e); }
   });
 
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+  // "Locate me": the browser asks for permission; the position stays on this device.
+  map.addControl(new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: false, timeout: 10000 }, fitBoundsOptions: { maxZoom: 9 }, trackUserLocation: false,
+  }), "top-right");
 
   // Slow spin until the user interacts or a flight starts; once stopped it never restarts.
   let spinning = true;
@@ -211,4 +215,33 @@ export function setSatellite(map, { beam, swath, track }) {
     map.addLayer({ id: "sat-beam", type: "fill-extrusion", source: "sat-beam",
       paint: { "fill-extrusion-color": ["match", ["get", "kind"], "sat", "#ffffff", "#5ef2ff"],
         "fill-extrusion-base": ["get", "base"], "fill-extrusion-height": ["get", "top"], "fill-extrusion-opacity": 0.5 } });
+}
+
+// Live fire hotspots: NASA FIRMS (VIIRS NOAA-20, 375 m) rendered by the GIBS WMS for each UTC day.
+const WMS = "https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&STYLES=&CRS=EPSG:3857"
+  + "&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true";
+export function addHotspots(map, dates, layer = "VIIRS_NOAA20_Thermal_Anomalies_375m_All") {
+  for (const d of dates) {
+    const id = `firms-${d}`;
+    if (map.getSource(id)) continue;
+    map.addSource(id, { type: "raster", tileSize: 256, tiles: [`${WMS}&LAYERS=${layer}&TIME=${d}`],
+      attribution: "Hotspots: NASA FIRMS (VIIRS NOAA-20) via GIBS" });
+    map.addLayer({ id, type: "raster", source: id, paint: { "raster-fade-duration": 150 } }, "showcase-halo");
+  }
+}
+export function setHotspotsVisible(map, on) {
+  for (const l of map.getStyle().layers) if (l.id.startsWith("firms-")) map.setLayoutProperty(l.id, "visibility", on ? "visible" : "none");
+}
+
+// Optional optical photo of one day (VIIRS NOAA-20 true colour, 250 m; may have clouds), zoom >= 5.
+export function setOptical(map, date, on) {
+  if (!map.getSource("optical")) {
+    map.addSource("optical", { type: "raster", tileSize: 256, maxzoom: 9,
+      tiles: [gibs("VIIRS_NOAA20_CorrectedReflectance_TrueColor", date, "GoogleMapsCompatible_Level9", "jpg")],
+      attribution: `Satellite photo: VIIRS NOAA-20 ${date}, NASA GIBS` });
+    map.addLayer({ id: "optical", type: "raster", source: "optical", minzoom: 5,
+      paint: { "raster-opacity": ["interpolate", ["linear"], ["zoom"], 5, 0, 6, 1] } }, "relief");
+  }
+  else map.getSource("optical").setTiles([gibs("VIIRS_NOAA20_CorrectedReflectance_TrueColor", date, "GoogleMapsCompatible_Level9", "jpg")]);
+  map.setLayoutProperty("optical", "visibility", on ? "visible" : "none");
 }

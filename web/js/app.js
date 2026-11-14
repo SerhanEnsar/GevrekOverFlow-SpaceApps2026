@@ -1,6 +1,6 @@
 // App wiring: globe, showcase panel, bottom time strip, method drawer, story.
 import { SHOWCASES } from "./config.js";
-import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase, setSatellite } from "./map.js";
+import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase, setSatellite, addHotspots, setHotspotsVisible, setOptical } from "./map.js";
 import { loadTle, makePropagator, satelliteScene } from "./orbit.js";
 import { createSatView } from "./satview.js";
 import { loadManifest, loadTimeseries, seriesAt, valuesAt, seriesToCsv } from "./data.js";
@@ -389,6 +389,29 @@ document.addEventListener("keydown", (e) => {
 $("summary").addEventListener("click", (e) => {
   if (e.target.closest("[data-open-method]")) { e.preventDefault(); openMethod(); }
 });
+
+// ---- live FIRMS hotspots (today + yesterday, UTC) and the optional optical photo ----------
+const utcDay = (k) => new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
+mapLoaded.then(() => {
+  addHotspots(map, [utcDay(1), utcDay(0)]);
+  setHotspotsVisible(map, $("hotspots").checked);
+});
+$("hotspots").addEventListener("change", (e) => mapReady && setHotspotsVisible(map, e.target.checked));
+// The optical photo only makes sense when zoomed in; clouds can be skipped by stepping days back.
+let photoOn = false, photoAgo = 1;
+const photoSync = () => {
+  $("photo-ctl").hidden = map.getZoom() < 5 || satView.active;
+  $("photo-days").hidden = !photoOn;
+  $("photo-date").textContent = utcDay(photoAgo);
+  $("photo-next").disabled = photoAgo <= 1;
+  $("photo-btn").setAttribute("aria-pressed", String(photoOn));
+  $("photo-btn").classList.toggle("on", photoOn);
+  if (mapReady && (photoOn || map.getLayer("optical"))) setOptical(map, utcDay(photoAgo), photoOn);
+};
+map.on("zoomend", () => { $("photo-ctl").hidden = map.getZoom() < 5 || satView.active; });
+$("photo-btn").addEventListener("click", () => { photoOn = !photoOn; photoSync(); });
+$("photo-prev").addEventListener("click", () => { photoAgo = Math.min(photoAgo + 1, 60); photoSync(); });
+$("photo-next").addEventListener("click", () => { photoAgo = Math.max(photoAgo - 1, 1); photoSync(); });
 
 // The cover leaves once every source has answered (live or saved copy).
 const coverDone = Promise.all([firesP, passesP, tleP, new Promise((r) => {
