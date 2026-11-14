@@ -26,6 +26,16 @@ REGIONS = {
         "geometry_groups": ["036D070", "028A020"],
         "default_group": "036D070",
     },
+    "spain": {
+        "label": "Guadalajara, Spain",
+        "bbox": (-3.26, 40.97, -2.86, 41.27),
+        "event_date": "2026-07-17",          # NASA EONET "Wildfire in Spain 1029540", 31,297 ha
+        "eonet_point": (-3.058, 41.114),
+        "search_start": "2026-06-01",
+        "search_end": "2026-10-31",
+        "geometry_groups": [],
+        "default_group": None,
+    },
 }
 
 
