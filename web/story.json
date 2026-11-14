@@ -1,7 +1,39 @@
 [
-  { "title": "[DRAFT] Earth through radar eyes", "text": "[Draft text — to be written by the team after the Spain data is processed.]", "showcase": null },
-  { "title": "[DRAFT] Before the fire", "text": "[Draft]", "showcase": "spain", "date": "2026-07-14" },
-  { "title": "[DRAFT] After the fire", "text": "[Draft]", "showcase": "spain", "date": "2026-07-26", "compare": true },
-  { "title": "[DRAFT] Months later", "text": "[Draft]", "showcase": "spain", "date": "2026-10-18" },
-  { "title": "[DRAFT] Another fire, a different answer", "text": "[Draft]", "showcase": "mugla", "date": "2026-08-15", "compare": true }
+  {
+    "title": "Earth through radar eyes",
+    "text": "NISAR, a NASA–ISRO satellite, sends its own microwave pulses to Earth and listens to the echo — day and night, through clouds and smoke. The coloured strips on the globe are what it saw in the last 12 days. Green means a strong echo from inside vegetation: leaves and branches scattering the wave in every direction.",
+    "showcase": null
+  },
+  {
+    "title": "A forest in Spain, three days before the fire",
+    "text": "Guadalajara, 14 July 2026. Yellow-green is dense vegetation; purple is open ground and fields. On 17 July a wildfire swept through these hills. NISAR passes over the same spot every 12 days, from the same angle, so we can compare like with like.",
+    "showcase": "spain",
+    "date": "2026-07-14"
+  },
+  {
+    "title": "After the fire: the vegetation signal collapses",
+    "text": "26 July. Drag the slider to compare. Where the forest burned, the colour turns purple: 2,118 hectares lost more than half of their vegetation signal (HV fell by 3 dB or more). Unburned land next to it stays the same — so this is the fire, not a change of season or weather.",
+    "showcase": "spain",
+    "date": "2026-07-26",
+    "compare": true
+  },
+  {
+    "title": "Three months later, no regrowth yet",
+    "text": "18 October. The chart follows one burned spot: its vegetation signal dropped from −13.5 to −21.5 dB with the fire and is still sinking (−22.2 dB), while unburned land stays near −15 dB. The dotted point in January, from another orbit, shows that summer drying did not cause the drop.",
+    "showcase": "spain",
+    "date": "2026-10-18",
+    "point": [-2.9738, 41.1614]
+  },
+  {
+    "title": "Another fire, a different answer",
+    "text": "Muğla–Fethiye, Türkiye, burned on 28 July 2026. The scar is clear in optical images — yet the radar barely changed: only about 9 hectares lost 3 dB. Our hypothesis: NISAR's 24 cm waves mostly bounce off trunks and big branches. If the fire burned the undergrowth and the crowns but left charred trunks standing, the radar still sees a 'forest'.",
+    "showcase": "mugla",
+    "date": "2026-08-15",
+    "compare": true
+  },
+  {
+    "title": "Now it's your turn",
+    "text": "Click anywhere on Earth to see what NISAR saw there, with a time machine of its past images. Press 🔥 Latest fire to jump to the newest wildfire, or 🛰 NISAR now to ride with the satellite. Click a legend item to hide a layer, and open “How we measured” for the details.",
+    "showcase": null
+  }
 ]

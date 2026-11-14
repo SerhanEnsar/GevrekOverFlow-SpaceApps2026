@@ -39,7 +39,9 @@ export function initStory(el, steps, actions) {
     </div>`;
   const $ = (c) => el.querySelector(c);
 
+  let token = 0;
   async function go(k) {
+    const my = ++token;                                  // quick clicks: only the latest step may act
     i = Math.max(0, Math.min(steps.length - 1, k));
     const s = steps[i];
     $(".story-step").textContent = `Step ${i + 1} of ${steps.length}`;
@@ -50,6 +52,8 @@ export function initStory(el, steps, actions) {
     actions.setCompare(false);
     if (s.showcase == null) { actions.goGlobe(); return; }
     await actions.openShowcase(s.showcase);
+    if (my !== token) return;
+    actions.setCompare(false);                           // a slower earlier step may have opened it
     if (s.date) actions.setDate(s.date);
     if (s.compare) actions.setCompare(true);
     if (s.point) actions.showPoint(s.point);

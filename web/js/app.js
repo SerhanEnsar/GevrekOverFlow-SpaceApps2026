@@ -86,10 +86,17 @@ function toggleCompare() {
 $("compare-btn").addEventListener("click", toggleCompare);
 
 // ---- showcases ----------------------------------------------------------------
-async function openShowcase(s) {
+let opening = null;                                   // {id, promise} while a showcase is loading
+function openShowcase(s) {
   satView.exit(false);
   if (compare) toggleCompare();
-  if (s.id === currentId && bundle()) return;          // already open
+  if (s.id === currentId && bundle()) return Promise.resolve();   // already open
+  if (opening?.id === s.id) return opening.promise;               // already loading: share it
+  const promise = loadShowcase(s).finally(() => { if (opening?.promise === promise) opening = null; });
+  opening = { id: s.id, promise };
+  return promise;
+}
+async function loadShowcase(s) {
   currentId = s.id;
   $("gcard").hidden = true; setFireFocus(map, null);
   flyToShowcase(map, s);
