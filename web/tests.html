@@ -24,6 +24,7 @@
     import { destination, bearing, groundRange, beamFeatures, swathPolygon } from "./js/orbit.js";
     import { lodHidden, swathCentre } from "./js/satview.js";
     import { passFeatures, hhOnlyDatesAt } from "./js/live.js";
+    import { periodicPasses, sparkline } from "./js/timemachine.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -238,6 +239,21 @@
       eq(f.map((x) => [x.properties.date, x.properties.hv]), [["2026-11-01", true], ["2026-11-05", false]]);
       eq(f[0].geometry.coordinates[0][1], [1, 0]);                     // "lat lon" pairs became [lon, lat]
       eq([...hhOnlyDatesAt({ features: f }, inRing, 0.5, 0.5)], ["2026-11-05"]);
+    });
+
+    test("time machine: periods from one orbit, dual-pol only, keeping the passes around the fire", () => {
+      const P = [];
+      for (let k = 0; k < 14; k++) P.push({ date: `2026-${String(6 + Math.floor(k / 3)).padStart(2, "0")}-${String(1 + (k % 3) * 10).padStart(2, "0")}`, geometry: "079D089", hv: k !== 5 });
+      P.push({ date: "2026-10-02", geometry: "144A001", hv: true });
+      const got = periodicPasses(P, "2026-08-15", 6);
+      eq(got.length, 6);
+      ok(got.every((p) => p.geometry === "079D089" && p.hv));
+      eq(got[0].date, "2026-06-01"); eq(got.at(-1).date, "2026-10-11");
+      ok(got.some((p) => p.date === "2026-08-11") && got.some((p) => p.date === "2026-08-21"));   // around the fire
+    });
+    test("time machine: few passes are all kept; HH-only never shown", () => {
+      eq(periodicPasses([{ date: "2026-07-01", geometry: "A", hv: false }, { date: "2026-08-01", geometry: "A", hv: true }]).length, 1);
+      ok(sparkline([{ date: "a", hv: -15 }, { date: "c", hv: -20 }], "b").includes("tm-fire"));
     });
 
     // story.js

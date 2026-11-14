@@ -226,7 +226,10 @@ export function addHotspots(map, dates, layer = "VIIRS_NOAA20_Thermal_Anomalies_
     if (map.getSource(id)) continue;
     map.addSource(id, { type: "raster", tileSize: 256, tiles: [`${WMS}&LAYERS=${layer}&TIME=${d}`],
       attribution: "Hotspots: NASA FIRMS (VIIRS NOAA-20) via GIBS" });
-    map.addLayer({ id, type: "raster", source: id, paint: { "raster-fade-duration": 150 } }, "showcase-halo");
+    // WMS renders the detections as fixed-size symbols: fine on the globe, blotchy when zoomed in,
+    // so they fade out where NISAR imagery and EONET markers take over.
+    map.addLayer({ id, type: "raster", source: id, maxzoom: 7,
+      paint: { "raster-fade-duration": 150, "raster-opacity": ["interpolate", ["linear"], ["zoom"], 5, 1, 6.8, 0] } }, "showcase-halo");
   }
 }
 export function setHotspotsVisible(map, on) {

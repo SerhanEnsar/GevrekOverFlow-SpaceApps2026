@@ -3,6 +3,7 @@ import { passDates } from "./cmr.js";
 import { readPixel, cropAround } from "./gibs.js";
 import { gibsToDb, interpret } from "./rules.js";
 import { nearby } from "./fires.js";
+import { renderTimeMachine } from "./timemachine.js";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const db = (v) => (v == null ? "–" : v.toFixed(1).replace("-", "−"));
@@ -65,6 +66,7 @@ export async function openGlobalCard(el, lng, lat, ctx, { event = null, title = 
       <figure><div class="gc-img gc-img-a"></div><figcaption class="gc-cap-a"></figcaption></figure>
     </div>
     <div class="gc-result"></div>
+    <section class="gc-tm"></section>
     ${fires.length ? `<h4>Fires within 50 km (NASA EONET)</h4><ul class="gc-fires">${fires.map((f, i) =>
       `<li><button class="linkish" data-i="${i}">${esc(f[1])}</button> <span class="muted">${f[2]}${f[5] ? " · " + f[5].toLocaleString("en") + " ha" : ""}</span></li>`).join("")}</ul>` : ""}
     <details class="gc-details"><summary>Details</summary><div class="gc-expert"></div></details>
@@ -123,4 +125,5 @@ export async function openGlobalCard(el, lng, lat, ctx, { event = null, title = 
   selB.addEventListener("change", render);
   selA.addEventListener("change", render);
   await render();
+  if (alive()) await renderTimeMachine(body.querySelector(".gc-tm"), lng, lat, passes, ctx.rules, event, alive, after?.geometry);
 }

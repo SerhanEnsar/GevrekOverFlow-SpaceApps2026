@@ -96,6 +96,10 @@ export function renderMethod(el, rules, manifests) {
       Vegetation classes agree 85% with the full-resolution data; buildings cannot be seen at this scale.
       Change between two dates is shown as <em>experimental</em>: it finds 96% of the Spanish burn scar with 0.7%
       false alarms on unchanged land, but cannot draw its exact border.</p>
+      <p>Some NISAR passes record <strong>HH only</strong> (single polarization). They have no vegetation channel and
+      show up orange or yellow on the globe; we flag them and never use them for vegetation or change.</p>
+      <p>The <em>time machine</em> of each place shows up to six NISAR images spread over the whole record, all from
+      one orbit so they are comparable, with the vegetation signal (HV) of each and the fire date marked.</p>
     </section>
     <section>
       <h3>Limits</h3>
@@ -112,9 +116,11 @@ export function renderMethod(el, rules, manifests) {
     <section>
       <h3>Data sources</h3>
       <ul>
-        <li>NISAR L2 GCOV (NASA–ISRO), via NASA ASF DAAC and CMR</li>
+        <li>NISAR L2 GCOV (NASA–ISRO), via NASA ASF DAAC and CMR (pass dates and footprints live, CMR GraphQL)</li>
         <li>NASA GIBS: NISAR imagery, Blue Marble, ASTER GDEM relief</li>
-        <li>NASA EONET: wildfire events</li>
+        <li>NASA EONET: wildfire events of the last year (live)</li>
+        <li>NASA FIRMS active fire detections (VIIRS NOAA-20, 375 m), via the GIBS WMS (live)</li>
+        <li>NASA GIBS: VIIRS NOAA-20 true colour satellite photo (optional, 250 m)</li>
         <li>Visualization only: NISAR orbit elements (TLE, NORAD 65053) from a public TLE API listed on api.nasa.gov,
         propagated with satellite.js</li>
       </ul>
