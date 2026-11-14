@@ -4,11 +4,23 @@
 //   manifest.json   { bbox:[w,s,e,n], dates:[...], grid:{width,height}, db_scale:{offset,step}, ... }
 //   timeseries.bin  uint8[dates][2 pol: HH, HV][height][width]; 0 = no data; dB = offset + step * v
 
+// Two steps so the map can show a showcase before the (larger) time series has arrived:
+// the manifest (a few KB) first, then timeseries.bin in the background.
+export async function loadManifest(region, base = "data") {
+  const r = await fetch(`${base}/${region}/manifest.json`);
+  if (!r.ok) throw new Error(`manifest ${r.status}`);
+  return r.json();
+}
+
+export async function loadTimeseries(region, base = "data") {
+  const r = await fetch(`${base}/${region}/timeseries.bin`);
+  if (!r.ok) throw new Error(`timeseries ${r.status}`);
+  return new Uint8Array(await r.arrayBuffer());
+}
+
 export async function loadBundle(region, base = "data") {
-  const dir = `${base}/${region}`;
-  const manifest = await (await fetch(`${dir}/manifest.json`)).json();
-  const ts = new Uint8Array(await (await fetch(`${dir}/timeseries.bin`)).arrayBuffer());
-  return { manifest, ts };
+  const manifest = await loadManifest(region, base);
+  return { manifest, ts: await loadTimeseries(region, base) };
 }
 
 export function decodeDb(v, scale) {
@@ -29,6 +41,7 @@ export function pixelOf(manifest, lon, lat) {
 // Returns null outside the bbox or when every value is missing.
 export function seriesAt(bundle, lon, lat, radiusM = 0) {
   const { manifest: m, ts } = bundle;
+  if (!ts) return null;
   const center = pixelOf(m, lon, lat);
   if (!center) return null;
   const { width: W, height: H } = m.grid;
@@ -62,6 +75,7 @@ export function seriesAt(bundle, lon, lat, radiusM = 0) {
 // HH/HV dB of a single pixel at date index t (null outside the bbox or without data).
 export function valuesAt(bundle, lon, lat, t) {
   const { manifest: m, ts } = bundle;
+  if (!ts) return null;
   const px = pixelOf(m, lon, lat);
   if (!px || t < 0 || t >= m.dates.length) return null;
   const plane = m.grid.width * m.grid.height, i = px.row * m.grid.width + px.col;

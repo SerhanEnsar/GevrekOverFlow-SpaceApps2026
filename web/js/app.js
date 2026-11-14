@@ -1,9 +1,8 @@
 // App wiring: globe, showcase panel, bottom time strip, method drawer, story.
 import { SHOWCASES } from "./config.js";
 import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick } from "./map.js";
-import { loadBundle, seriesAt, valuesAt, seriesToCsv } from "./data.js";
+import { loadManifest, loadTimeseries, seriesAt, valuesAt, seriesToCsv } from "./data.js";
 import { loadRules, interpret } from "./rules.js";
-import { showSeries } from "./chart.js";
 import { initTimeline } from "./timeline.js";
 import { initCompare, defaultPair } from "./compare.js";
 import { initStory } from "./story.js";
@@ -24,6 +23,7 @@ const rules = await loadRules().catch(() => { toast("Interpretation rules could 
 // ---- state ------------------------------------------------------------------
 let timeline = null, compare = null, currentIdx = 0, currentId = null, layer = "radar";
 let lastSeries = null;           // {series, lng, lat} for CSV
+let pendingPoint = null;         // a click that came before the pixel values
 const manifests = {};            // id -> manifest, for the method drawer
 
 function bundle() { return window.__bundle; }
@@ -78,16 +78,25 @@ async function openShowcase(s) {
   window.__bundle = null;
   $("status").textContent = "Loading radar data…";
   try {
-    const b = await loadBundle(s.id);
+    const manifest = await loadManifest(s.id);
     if (currentId !== s.id) return;                     // user moved on meanwhile
+    const b = { manifest, ts: null };
     window.__bundle = b;
-    manifests[s.id] = b.manifest;
+    manifests[s.id] = manifest;
     $("status").textContent = "";
-    $("hint").hidden = false;
-    $("summary").innerHTML = summaryHtml(b.manifest);
-    $("summary").hidden = !b.manifest.summary;
-    timeline = initTimeline($("timeline"), b.manifest, `data/${s.id}`, (_d, _url, i) => { currentIdx = i; showFrame(); });
+    $("summary").innerHTML = summaryHtml(manifest);
+    $("summary").hidden = !manifest.summary;
+    timeline = initTimeline($("timeline"), manifest, `data/${s.id}`, (_d, _url, i) => { currentIdx = i; showFrame(); });
     $("compare-btn").hidden = false;
+    // Pixel values for the tooltip and the chart arrive in the background.
+    $("hint").hidden = false;
+    $("hint").textContent = "Loading pixel values…";
+    loadTimeseries(s.id).then((ts) => {
+      if (window.__bundle !== b) return;
+      b.ts = ts;
+      $("hint").textContent = "Click anywhere on the radar image to see how that place changed.";
+      if (pendingPoint) { showPoint(...pendingPoint); pendingPoint = null; }
+    }).catch(() => { $("hint").textContent = "Pixel values could not be loaded — the images still work."; });
   } catch (e) {
     $("status").textContent = "Radar data for this showcase could not be loaded. Check your connection and try again.";
     $("timeline").innerHTML = '<span class="muted">No radar dates available.</span>';
@@ -113,12 +122,14 @@ const map = initGlobe("map", SHOWCASES, {
 // ---- point time series + CSV ------------------------------------------------
 function showPoint(lng, lat) {
   const b = bundle(); if (!b) return;
+  if (!b.ts) { pendingPoint = [lng, lat]; setPick(map, { lng, lat }); return; }
   setPick(map, { lng, lat });
   $("hint").hidden = true; $("series-wrap").hidden = false;
   const series = seriesAt(b, lng, lat, 60);
   lastSeries = series ? { series, lng, lat } : null;
   $("csv-btn").disabled = !series;
-  showSeries($("series"), series, b.manifest);
+  // Chart.js (~200 KB) is only needed once someone clicks a place.
+  import("./chart.js").then(({ showSeries }) => showSeries($("series"), series, b.manifest));
 }
 map.on("click", (e) => {
   if (!bundle() || map.queryRenderedFeatures(e.point, { layers: ["showcase-dot"] }).length) return;

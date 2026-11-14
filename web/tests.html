@@ -42,6 +42,9 @@
     test("pixelOf outside bbox is null", () => eq(pixelOf(manifest, 28.9, 36.1), null));
     test("pixelOf top-left corner is col 0 row 0", () => eq(pixelOf(manifest, 29.01, 36.19), { col: 0, row: 0 }));
     test("pixelOf bottom-right edge stays inside grid", () => eq(pixelOf(manifest, 29.2, 36.0), { col: 1, row: 1 }));
+    test("before the time series arrives, pixel lookups return null", () => {
+      eq(seriesAt({ manifest, ts: null }, 29.05, 36.15), null);
+    });
     test("seriesAt outside bbox is null", () => eq(seriesAt(bundle, 30, 36.1), null));
     test("seriesAt on a no-data pixel is null", () => eq(seriesAt(bundle, 29.15, 36.15), null));
     test("seriesAt single pixel returns HV per date", () => {
