@@ -55,3 +55,7 @@ body { display: flex; flex-direction: column; }
 .cmp-tag { position: absolute; top: 12px; white-space: nowrap; background: rgba(12,17,23,.85); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 12px; }
 .cmp-tag.left { right: 14px; } .cmp-tag.right { left: 14px; }
 .panel { z-index: 4; }
+
+/* "What am I looking at?" tooltip */
+.explain { position: absolute; z-index: 5; max-width: 300px; pointer-events: none; background: rgba(12,17,23,.92); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; }
+.explain-expert { margin-top: 6px; color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }

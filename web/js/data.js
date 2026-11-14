@@ -58,3 +58,15 @@ export function seriesAt(bundle, lon, lat, radiusM = 0) {
   if (hh.every((v) => v === null) && hv.every((v) => v === null)) return null;
   return { dates: m.dates, hh, hv };
 }
+
+// HH/HV dB of a single pixel at date index t (null outside the bbox or without data).
+export function valuesAt(bundle, lon, lat, t) {
+  const { manifest: m, ts } = bundle;
+  const px = pixelOf(m, lon, lat);
+  if (!px || t < 0 || t >= m.dates.length) return null;
+  const plane = m.grid.width * m.grid.height, i = px.row * m.grid.width + px.col;
+  return {
+    hh: decodeDb(ts[(t * 2) * plane + i], m.db_scale),
+    hv: decodeDb(ts[(t * 2 + 1) * plane + i], m.db_scale),
+  };
+}

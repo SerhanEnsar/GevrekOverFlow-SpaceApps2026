@@ -38,19 +38,21 @@
         <p id="status" class="muted"></p>
       </section>
     </aside>
+    <div id="explain" class="explain" hidden></div>
   </main>
 
   <script type="module">
     import { SHOWCASES } from "./js/config.js";
     import { initGlobe, flyToShowcase, setFrame, setPick } from "./js/map.js";
-    import { loadBundle, seriesAt } from "./js/data.js";
+    import { loadBundle, seriesAt, valuesAt } from "./js/data.js";
+    import { explainPixel } from "./js/explain.js";
     import { showSeries } from "./js/chart.js";
     import { initTimeline } from "./js/timeline.js";
     import { initCompare, defaultPair } from "./js/compare.js";
 
     const $ = (id) => document.getElementById(id);
 
-    let timeline = null, compare = null;
+    let timeline = null, compare = null, currentIdx = 0;
 
     function toggleCompare() {
       const b = window.__bundle; if (!b) return;
@@ -84,7 +86,7 @@
         $("status").textContent = "";
         $("hint").hidden = false;
         timeline = initTimeline($("timeline"), bundle.manifest, `data/${s.id}`,
-          (date, url) => setFrame(map, url, bundle.manifest.bbox));
+          (date, url) => { currentIdx = bundle.manifest.dates.indexOf(date); setFrame(map, url, bundle.manifest.bbox); });
         $("compare-btn").hidden = false;
       } catch (e) {
         $("status").textContent = "Radar data for this showcase is still being prepared.";
@@ -102,6 +104,26 @@
       $("series-wrap").hidden = false;
       showSeries($("series"), seriesAt(bundle, e.lngLat.lng, e.lngLat.lat, 60), bundle.manifest);
     });
+    // "What am I looking at?" tooltip for the pixel under the cursor (G3).
+    let raf = 0;
+    map.on("mousemove", (e) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const b = window.__bundle, box = $("explain");
+        const now = b && valuesAt(b, e.lngLat.lng, e.lngLat.lat, currentIdx);
+        const prev = b && currentIdx > 0 ? valuesAt(b, e.lngLat.lng, e.lngLat.lat, currentIdx - 1) : null;
+        const ex = now && explainPixel({
+          hh: now.hh, hv: now.hv,
+          dhv: prev && prev.hv != null && now.hv != null ? now.hv - prev.hv : null,
+          prevDate: currentIdx > 0 ? b.manifest.dates[currentIdx - 1] : null,
+        });
+        if (!ex || compare) { box.hidden = true; return; }
+        box.innerHTML = `<div>${ex.plain}</div><div class="explain-expert">${ex.expert}</div>`;
+        box.style.left = `${e.point.x + 16}px`; box.style.top = `${e.point.y + 16}px`;
+        box.hidden = false;
+      });
+    });
+    map.on("mouseout", () => { $("explain").hidden = true; });
     window.__map = map; // for manual inspection during development
   </script>
 </body>
