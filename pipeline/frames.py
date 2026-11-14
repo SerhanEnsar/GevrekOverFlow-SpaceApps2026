@@ -5,9 +5,9 @@ colour on every date and the animation shows real change, not contrast drift.
 """
 import numpy as np
 
-HH_RANGE = (-25.0, 0.0)     # red
-HV_RANGE = (-30.0, -5.0)    # green (and all channels of the multi-date composite)
-RATIO_RANGE = (0.0, 15.0)   # blue: HH - HV in dB (low = volume scattering / vegetation)
+HH_RANGE = (-20.0, 0.0)     # red   (ranges = ~2nd-98th percentile of real GCOV in both showcases)
+HV_RANGE = (-26.0, -5.0)    # green (and all channels of the multi-date composite)
+RATIO_RANGE = (1.0, 11.0)   # blue: HH - HV in dB (low = volume scattering / vegetation)
 
 
 def _stretch(a: np.ndarray, lo: float, hi: float) -> np.ndarray:

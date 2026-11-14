@@ -33,8 +33,9 @@ REGIONS = {
         "eonet_point": (-3.058, 41.114),
         "search_start": "2026-06-01",
         "search_end": "2026-10-31",
-        "geometry_groups": [],
-        "default_group": None,
+        # Both cover 100 % of the AOI; 095D068 has scenes 3 days before / 9 days after the fire.
+        "geometry_groups": ["095D068", "159A022"],
+        "default_group": "095D068",
     },
 }
 
