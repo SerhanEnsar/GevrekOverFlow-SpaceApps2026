@@ -7,6 +7,8 @@
 An open-source web app that turns NASA–ISRO **NISAR** L-band radar data into something anyone can explore:
 where the land changed, what it is now, and *why* the radar sees it that way.
 
+### 🌍 [Open the live site →](https://serhanensar.github.io/GevrekOverFlow-SpaceApps2026/)
+
 **Team GevrekOverFlow** · NASA Space Apps Challenge 2026 ·
 Challenge: [Dancing with the SARs](https://www.spaceappschallenge.org/2026/challenges/dancing-with-the-sars/)
 
@@ -246,7 +248,10 @@ Saved copies in [`web/data/global/`](web/data/global) are used only if a live se
 
 ## Run it
 
-The site is static. Serve the `web/` folder with any web server:
+**Live:** <https://serhanensar.github.io/GevrekOverFlow-SpaceApps2026/> (deployed from `web/` by
+[GitHub Actions](.github/workflows/pages.yml) on every push to `main`).
+
+The site is static. To run it locally, serve the `web/` folder with any web server:
 
 ```bash
 cd web
