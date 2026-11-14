@@ -198,3 +198,6 @@ button { font: inherit; }
 .gc-dates select { width: 100%; min-width: 0; }
 .gc-warn { font-size: 12.5px; color: #ffd9a8; background: #ffb34714; border-left: 3px solid #ffb347; padding: 6px 8px; border-radius: 0 6px 6px 0; margin: 8px 0; }
 kbd { font: 600 10px/1 ui-monospace, monospace; padding: 2px 4px; margin-left: 4px; border: 1px solid rgba(255,255,255,.25); border-radius: 3px; opacity: .7; }
+.swatch.sat { background: #5ef2ff; opacity: .8; }
+.sat-chip { position: absolute; right: 12px; bottom: 52px; z-index: 4; max-width: 520px; font-size: 12px; line-height: 1.4;
+  background: rgba(8, 14, 28, .82); border: 1px solid #5ef2ff44; border-radius: 6px; padding: 6px 10px; color: #dff9ff; pointer-events: none; }

@@ -1,6 +1,7 @@
 // App wiring: globe, showcase panel, bottom time strip, method drawer, story.
 import { SHOWCASES } from "./config.js";
-import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase } from "./map.js";
+import { initGlobe, flyToShowcase, setFrame, setFrameVisible, setPick, addNisarDays, setFires, setFireFocus, setOpenShowcase, setSatellite } from "./map.js";
+import { loadTle, makePropagator, satelliteScene, destination } from "./orbit.js";
 import { loadManifest, loadTimeseries, seriesAt, valuesAt, seriesToCsv } from "./data.js";
 import { loadRules, interpret } from "./rules.js";
 import { initTimeline } from "./timeline.js";
@@ -118,7 +119,7 @@ function goGlobe(fly = true) {
   setOpenShowcase(map, null);
   $("intro").hidden = false; $("showcase").hidden = true; $("globe-btn").hidden = true;
   $("timeline").innerHTML = '<span class="muted">Pick a showcase on the globe to travel through its radar dates.</span>';
-  if (fly) map.flyTo({ center: [10, 30], zoom: 1.6, duration: 3000 });
+  if (fly) map.flyTo({ center: [10, 30], zoom: 1.6, pitch: 0, bearing: 0, duration: 3000 });
 }
 $("globe-btn").addEventListener("click", () => goGlobe());
 
@@ -299,6 +300,39 @@ loadFires().then((rows) => {
   if (!rows.length) $("fire-count").textContent = "Fire data could not be loaded.";
 });
 
+// ---- NISAR now (approximate position from public TLE — visualization only) -------
+let satNow = null;
+async function startSatellite() {
+  const tle = await loadTle();
+  if (!tle) { $("sat-btn").hidden = true; return; }
+  const at = await makePropagator(tle).catch(() => null);
+  if (!at) { $("sat-btn").hidden = true; return; }
+  const tick = () => {
+    if (document.hidden) return;
+    const sc = satelliteScene(at, new Date());
+    if (!sc) return;
+    satNow = sc.now;
+    setSatellite(map, sc);
+    const n = sc.now, ns = n.lat >= 0 ? "N" : "S", ew = n.lon >= 0 ? "E" : "W";
+    $("sat-chip").innerHTML = `🛰 <strong>NISAR now</strong> · ${Math.abs(n.lat).toFixed(1)}°${ns}, ${Math.abs(n.lon).toFixed(1)}°${ew}
+      · ${Math.round(n.altKm)} km <span class="muted">· approximate, from public TLE (${(tle.date ?? "").slice(0, 10)}) · visualization only</span>`;
+    $("sat-chip").hidden = false;
+  };
+  tick();
+  setInterval(tick, 2000);
+}
+$("sat-btn").addEventListener("click", () => {
+  if (!satNow) return toast("NISAR's position is not available right now.");
+  if (bundle()) goGlobe(false);
+  map.stopSpin?.();
+  // Look along the flight direction from behind, so the beam leans out to the left.
+  // Centre between the nadir and the imaged strip and look along the flight direction:
+  // the beam then climbs from the strip (left) to the satellite (right).
+  const c = destination([satNow.lon, satNow.lat], satNow.heading - 90, 270);
+  map.flyTo({ center: c, zoom: 4, pitch: 58, bearing: satNow.heading, duration: 3500, essential: true });
+});
+if (mapReady) startSatellite(); else map.once("load", startSatellite);
+
 // ---- method drawer ------------------------------------------------------------
 async function openMethod() {
   for (const s of SHOWCASES)
@@ -317,6 +351,7 @@ document.addEventListener("keydown", (e) => {
   if (compare) return toggleCompare();
   if (!$("gcard").hidden) { $("gcard").querySelector(".gc-close")?.click(); return; }
   if (bundle() || currentId) return goGlobe();
+  if (map.getPitch() > 0 || map.getBearing() !== 0) map.easeTo({ pitch: 0, bearing: 0, duration: 1200 });
 });
 $("summary").addEventListener("click", (e) => {
   if (e.target.closest("[data-open-method]")) { e.preventDefault(); openMethod(); }

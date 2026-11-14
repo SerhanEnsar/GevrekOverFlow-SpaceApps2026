@@ -21,6 +21,7 @@
     import { geometryKey, parsePasses, inRing, imagedAfterLocal } from "./js/cmr.js";
     import { tileXY } from "./js/gibs.js";
     import { parseLive, mergeFires, inRange, nearby, distanceKm } from "./js/fires.js";
+    import { destination, bearing, groundRange, beamFeatures, swathPolygon } from "./js/orbit.js";
 
     const results = [];
     const test = (name, fn) => {
@@ -29,6 +30,7 @@
     };
     const eq = (a, b) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${JSON.stringify(a)} !== ${JSON.stringify(b)}`); };
     const near = (a, b, tol = 1e-9) => { if (Math.abs(a - b) > tol) throw new Error(`${a} !≈ ${b}`); };
+    const ok = (c, msg = "expected true") => { if (!c) throw new Error(msg); };
 
     // Fake 2x2 bundle, 2 dates. db = -30 + 0.15 * v
     const scale = { offset: -30, step: 0.15 };
@@ -181,6 +183,34 @@
       near(distanceKm(0, 0, 0, 1), 111.19, 0.05);
       eq(nearby([["A", "", "2026-01-01", 0, 0.3], ["B", "", "2026-02-01", 0, 0.1], ["C", "", "2026-03-01", 3, 3]], 0, 0, 50).map((r) => r[0]), ["B", "A"]);
     });
+
+    // orbit.js (visualization only)
+    test("destination and bearing on a sphere", () => {
+      const p = destination([0, 0], 90, 111.19);
+      near(p[0], 1, 0.01); near(p[1], 0, 1e-6);
+      near(bearing([0, 0], [0, 1]), 0, 1e-6);
+      near(destination([179.5, 0], 90, 111.19)[0], -179.5, 0.01);
+    });
+    test("NISAR swath: 33–47° incidence from 747 km is ~250 km wide, 430–680 km off nadir", () => {
+      const near_ = groundRange(33, 747), far = groundRange(47, 747);
+      near(near_, 426, 10); near(far, 679, 10); near(far - near_, 250, 15);
+    });
+    test("beam: slabs climb from the ground to the satellite, on the LEFT of the flight direction", () => {
+      const fc = beamFeatures([0, 0], 0, 747);                    // flying north → left is west
+      const beam = fc.features.filter((f) => f.properties.kind === "beam");
+      eq(beam[0].properties.base, 0);
+      near(beam.at(-1).properties.top, 747000, 1);
+      eq(fc.features.at(-1).properties.kind, "sat");
+      ok(beam[0].geometry.coordinates[0].every(([x]) => x < 0));  // ground end lies west of nadir
+    });
+    test("swath strip: one closed quad per track step, west of a northbound track", () => {
+      const fc = swathPolygon([[0, 0, 0], [0, 1, 0], [0, 2, 0]], 747);
+      eq(fc.features.length, 2);
+      const ring = fc.features[0].geometry.coordinates[0];
+      eq(ring[0], ring.at(-1)); ok(ring.every(([x]) => x < 0));
+    });
+    test("swath strip skips steps too close to a pole", () =>
+      eq(swathPolygon([[0, 86, 0], [0, 87, 0]], 747).features.length, 0));
 
     // story.js
     test("story validation catches unknown showcase and missing text", () => {

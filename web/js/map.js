@@ -196,3 +196,19 @@ export function setFireFocus(map, row) {
   map.addLayer({ id: "fire-focus", type: "circle", source: "fire-focus",
     paint: { "circle-radius": 16, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#ff5a36", "circle-stroke-width": 2.5 } });
 }
+
+// NISAR's approximate live position (visualization only): ground track, recent swath, beam + satellite.
+export function setSatellite(map, { beam, swath, track }) {
+  const put = (id, data) => { const s = map.getSource(id); if (s) { s.setData(data); return false; } map.addSource(id, { type: "geojson", data,
+    ...(id === "sat-beam" ? { attribution: "NISAR position: public TLE, SGP4 — visualization only" } : {}) }); return true; };
+  if (put("sat-track", track))
+    map.addLayer({ id: "sat-track", type: "line", source: "sat-track",
+      paint: { "line-color": "#5ef2ff", "line-width": 1.2, "line-opacity": 0.6, "line-dasharray": [2, 2] } }, "showcase-halo");
+  if (put("sat-swath", swath))
+    map.addLayer({ id: "sat-swath", type: "fill", source: "sat-swath",
+      paint: { "fill-color": "#5ef2ff", "fill-opacity": 0.22 } }, "showcase-halo");
+  if (put("sat-beam", beam))
+    map.addLayer({ id: "sat-beam", type: "fill-extrusion", source: "sat-beam",
+      paint: { "fill-extrusion-color": ["match", ["get", "kind"], "sat", "#ffffff", "#5ef2ff"],
+        "fill-extrusion-base": ["get", "base"], "fill-extrusion-height": ["get", "top"], "fill-extrusion-opacity": 0.5 } });
+}

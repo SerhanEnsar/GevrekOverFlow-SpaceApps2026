@@ -104,6 +104,9 @@ export function renderMethod(el, rules, manifests) {
         <li>Each place is imaged every 12 days from a given orbit; only same-orbit dates are fully comparable.</li>
         <li>Steep slopes facing away from the radar can be in shadow; soil moisture changes HH.</li>
         <li>The rules are simple and transparent, not an official land-cover classification.</li>
+        <li>“NISAR now” is an approximate position computed from public orbit elements (TLE) with the SGP4 model.
+        The beam is drawn from published geometry (left-looking, 33–47° incidence, ~242 km swath). It is a
+        visualization only — it is not used in any measurement, and it does not show whether the radar is switched on.</li>
       </ul>
     </section>
     <section>
@@ -112,6 +115,8 @@ export function renderMethod(el, rules, manifests) {
         <li>NISAR L2 GCOV (NASA–ISRO), via NASA ASF DAAC and CMR</li>
         <li>NASA GIBS: NISAR imagery, Blue Marble, ASTER GDEM relief</li>
         <li>NASA EONET: wildfire events</li>
+        <li>Visualization only: NISAR orbit elements (TLE, NORAD 65053) from a public TLE API listed on api.nasa.gov,
+        propagated with satellite.js</li>
       </ul>
     </section>`;
 }

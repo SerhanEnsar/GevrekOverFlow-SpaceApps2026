@@ -20,6 +20,7 @@
     </div>
     <nav class="top-actions">
       <button id="globe-btn" class="btn ghost" hidden title="Back to the globe (Esc)">← Globe <kbd>Esc</kbd></button>
+      <button id="sat-btn" class="btn ghost" title="Fly to NISAR's approximate position now">🛰 NISAR now</button>
       <button id="story-btn" class="btn ghost">▶ Story</button>
       <button id="method-btn" class="btn ghost" aria-controls="method" aria-expanded="false">How we measured ≡</button>
     </nav>
@@ -36,6 +37,7 @@
         <p class="legend"><span class="swatch passes"></span> Where NISAR imaged the land in the last 12 days</p>
         <p class="legend"><span class="swatch showcase"></span> Showcase — click to fly there</p>
         <p class="legend"><span class="swatch fire"></span> Wildfire reported to NASA EONET</p>
+        <p class="legend"><span class="swatch sat"></span> NISAR now: radar beam and the strip it just imaged (approximate)</p>
         <p class="muted small">Zoom in anywhere and click: we read NISAR's image of that place and explain it.</p>
       </section>
 
@@ -76,6 +78,7 @@
     <aside id="gcard" class="gcard" hidden aria-label="What NISAR saw here"></aside>
     <div id="explain" class="explain" hidden></div>
     <div id="story" class="story" hidden></div>
+    <div id="sat-chip" class="sat-chip" hidden></div>
     <div id="toast" class="toast" hidden role="alert"></div>
   </main>
 
