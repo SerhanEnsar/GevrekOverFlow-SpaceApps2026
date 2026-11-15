@@ -8,7 +8,7 @@ export const gibs = (layer, time, tms, ext) =>
 
 const center = ([w, s, e, n]) => [(w + e) / 2, (s + n) / 2];
 
-export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
+export function initGlobe(container, showcases, { onShowcase, onError, onLocate } = {}) {
   const map = new maplibregl.Map({
     container,
     center: [30, 25],
@@ -73,9 +73,14 @@ export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
 
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
   // "Locate me": the browser asks for permission; the position stays on this device.
-  map.addControl(new maplibregl.GeolocateControl({
-    positionOptions: { enableHighAccuracy: false, timeout: 10000 }, fitBoundsOptions: { maxZoom: 9 }, trackUserLocation: false,
-  }), "top-right");
+  // Desktop browsers locate by Wi-Fi, which can be slow: allow 20 s and a recent cached fix.
+  const geo = new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: false, timeout: 20000, maximumAge: 600000 },
+    fitBoundsOptions: { maxZoom: 9 }, trackUserLocation: false,
+  });
+  map.addControl(geo, "top-right");
+  geo.on("geolocate", () => onLocate?.("found"));
+  geo.on("error", (e) => onLocate?.("error", e.code));
 
   // Slow spin until the user interacts or a flight starts; once stopped it never restarts.
   let spinning = true;
@@ -94,6 +99,12 @@ export function initGlobe(container, showcases, { onShowcase, onError } = {}) {
   map.on("moveend", spin);
   map.on("load", spin);
   map.stopSpin = stop;
+  // The spin must not interrupt the flight to the user's position.
+  // (MapLibre builds the button asynchronously, so listen on the container.)
+  map.getContainer().addEventListener("click", (e) => {
+    if (!e.target.closest?.(".maplibregl-ctrl-geolocate")) return;
+    stop(); onLocate?.("start");
+  });
 
   map.on("mouseenter", "showcase-dot", () => { map.getCanvas().style.cursor = "pointer"; });
   map.on("mouseleave", "showcase-dot", () => { map.getCanvas().style.cursor = ""; });

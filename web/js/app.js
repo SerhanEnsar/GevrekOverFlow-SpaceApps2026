@@ -154,6 +154,15 @@ $("globe-btn").addEventListener("click", () => goGlobe());
 const map = initGlobe("map", SHOWCASES, {
   onShowcase: (s) => { if (!draw?.busy) openShowcase(s); },
   onError: () => toast("Some NASA map tiles could not be loaded right now — the rest of the site keeps working."),
+  onLocate: (state, code) => {
+    if (state === "start") return toast("Finding your location…");
+    if (state === "found") return toast("You are here. Your position never leaves this device.");
+    toast({
+      1: "Location access is blocked. Allow it from the icon in the address bar, then press ◎ again.",
+      2: "Your device could not work out where it is. On a desktop this needs the system's location (Wi-Fi) service.",
+      3: "Finding your location took too long. Check the system's location service and try again.",
+    }[code] ?? "Your location is not available right now.");
+  },
 });
 
 // ---- point time series + CSV ------------------------------------------------
